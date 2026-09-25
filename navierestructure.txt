@@ -1,0 +1,18 @@
+repo/
+├── README.md
+├── index.html                    ← página de entrada con links
+│
+├── 01-sweeps/
+│   └── barridofoundresul.html    ← barridos 5D/15D/26D
+│
+├── 02-ns-monitor/
+│   └── navier-stokes-monitor.html ← deepseek_html renombrado
+│
+├── 03-universal-interactive/
+│   └── universal-action.html     ← navier.html renombrado
+│
+├── 04-universal-gps/
+│   └── universal-gps-real.html   ← naviergps.html renombrado
+│
+└── _archive/
+    └── Navier-Stokes2.html        ← ancestro, no usar
