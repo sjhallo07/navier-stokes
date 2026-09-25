@@ -1,0 +1,2813 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>UNIVERSAL PHYSICS · Action Visible Total · Click · Drag · Shocks</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+    background: #000205; color: #00f0ff;
+    font-family: 'Segoe UI', Monaco, monospace;
+    overflow: hidden; width: 100vw; height: 100vh;
+    display: flex;
+}
+
+#floating-toggle-btn {
+    position: fixed; top: 12px; left: 12px; z-index: 100;
+    background: rgba(4, 15, 28, 0.92); border: 1px solid #00f0ff;
+    color: #00f0ff; padding: 8px 14px;
+    font-family: inherit; font-size: 11px; font-weight: bold;
+    border-radius: 4px; cursor: pointer;
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
+    display: flex; align-items: center; gap: 6px;
+    transition: all 0.2s; user-select: none;
+}
+#floating-toggle-btn:hover { background: #00f0ff; color: #000; }
+
+#sidebar {
+    width: 510px; height: 100vh;
+    background: rgba(2, 5, 12, 0.97);
+    border-right: 1px solid #00f0ff;
+    box-shadow: 5px 0 25px rgba(0, 240, 255, 0.15);
+    display: flex; flex-direction: column;
+    padding: 55px 14px 14px 14px;
+    z-index: 90; overflow-y: auto;
+    transition: transform 0.3s ease-in-out;
+    position: absolute; left: 0; top: 0;
+}
+#sidebar.minimized { transform: translateX(-100%); }
+
+#viewport-container {
+    flex: 1; width: 100vw; height: 100vh;
+    position: relative; overflow: hidden;
+    cursor: crosshair;
+}
+#viewport-container canvas { display: block; }
+#viewport-container.grabbing { cursor: grabbing; }
+#viewport-container.pointing { cursor: pointer; }
+
+h1 {
+    font-size: 11px; color: #fff; text-transform: uppercase;
+    letter-spacing: 1.5px; border-bottom: 1px solid #00f0ff;
+    padding-bottom: 6px; margin-bottom: 10px;
+}
+h1 .tag { color: #ff66cc; font-size: 8px; letter-spacing: 2px; }
+.section-title {
+    font-size: 10px; color: #ff0055; text-transform: uppercase;
+    margin-top: 10px; margin-bottom: 5px;
+    letter-spacing: 1px; font-weight: bold;
+}
+
+.btn-grid { display: grid; grid-template-columns: 1fr; gap: 5px; margin-bottom: 6px; }
+button.control-btn {
+    background: #061826; color: #00f0ff;
+    border: 1px solid #00f0ff;
+    padding: 7px 9px;
+    font-family: inherit; font-size: 10px; font-weight: bold;
+    text-align: left; cursor: pointer;
+    transition: all 0.2s; border-radius: 3px;
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 6px;
+}
+button.control-btn:hover { background: #00f0ff; color: #000; box-shadow: 0 0 12px rgba(0,240,255,0.5); }
+button.control-btn.active { background: #ff0055; color: #fff; border-color: #ff0055; }
+button.control-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+button.control-btn:active { transform: scale(0.97); }
+
+/* Action buttons — muy visibles */
+button.action-btn {
+    padding: 10px 12px;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    border-radius: 4px;
+    text-align: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.15s;
+}
+button.action-btn::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at center, currentColor 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+button.action-btn:active::after { opacity: 0.4; }
+button.action-btn:active { transform: scale(0.95); }
+
+button.act-bang   { background: linear-gradient(135deg, #ff0055, #ff9900); color: #fff; border-color: #ff0055; }
+button.act-bang:hover { box-shadow: 0 0 20px #ff0055; }
+button.act-vortex { background: linear-gradient(135deg, #2a083b, #e066ff); color: #fff; border-color: #e066ff; }
+button.act-vortex:hover { box-shadow: 0 0 20px #e066ff; }
+button.act-pulse  { background: linear-gradient(135deg, #0a2e3b, #00e6ff); color: #fff; border-color: #00e6ff; }
+button.act-pulse:hover { box-shadow: 0 0 20px #00e6ff; }
+button.act-shock  { background: linear-gradient(135deg, #2e2e0f, #ffff66); color: #000; border-color: #ffff66; }
+button.act-shock:hover { box-shadow: 0 0 20px #ffff66; }
+button.act-impact { background: linear-gradient(135deg, #3b0a0a, #ff5555); color: #fff; border-color: #ff5555; }
+button.act-impact:hover { box-shadow: 0 0 20px #ff5555; }
+button.act-focus  { background: linear-gradient(135deg, #0f2e1a, #00ff88); color: #fff; border-color: #00ff88; }
+button.act-focus:hover { box-shadow: 0 0 20px #00ff88; }
+button.act-over   { background: linear-gradient(135deg, #ff0055, #ff00ff, #00e6ff); color: #fff; border-color: #ff00ff; animation: pulseOver 1.5s infinite; }
+@keyframes pulseOver {
+    0%,100% { box-shadow: 0 0 8px rgba(255,0,255,0.5); }
+    50% { box-shadow: 0 0 25px rgba(255,0,255,1); }
+}
+
+button.newton-btn { background: #0f1d2e; color: #66ccff; border-color: #66ccff; }
+button.einstein-btn { background: #2e1a0f; color: #ffb366; border-color: #ffb366; }
+button.dirac-btn { background: #2e0f2e; color: #ff66ff; border-color: #ff66ff; }
+button.fock-btn { background: #0f2e1a; color: #66ff99; border-color: #66ff99; }
+button.string-btn { background: #2e2e0f; color: #ffff66; border-color: #ffff66; }
+button.lorentz-btn { background: #1a0f2e; color: #b366ff; border-color: #b366ff; }
+button.universal-btn {
+    background: linear-gradient(90deg, #2e0f1a, #1a0f2e, #0f2e1a);
+    color: #fff; border-color: #ff66cc;
+}
+button.sequence-btn { background: linear-gradient(90deg, #2a083b, #1a0a2e); color: #e066ff; border-color: #e066ff; }
+
+.hud-card {
+    background: rgba(0, 0, 0, 0.82);
+    border: 1px solid #1a3848;
+    padding: 8px 10px; border-radius: 4px;
+    margin-bottom: 6px; font-size: 9.5px;
+}
+.stat-row { display: flex; justify-content: space-between; gap: 8px; margin: 2px 0; }
+.stat-val { color: #fff; font-weight: bold; font-family: monospace; }
+.hl-green  { color: #00ff88; font-weight: bold; }
+.hl-yellow { color: #ffe600; font-weight: bold; }
+.hl-purple { color: #e066ff; font-weight: bold; }
+.hl-orange { color: #ff9900; font-weight: bold; }
+.hl-pink   { color: #ff66cc; font-weight: bold; }
+.hl-cyan   { color: #00e6ff; font-weight: bold; }
+.hl-blue   { color: #66ccff; font-weight: bold; }
+.hl-red    { color: #ff5555; font-weight: bold; }
+
+.pos-grid { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 2px 8px; font-size: 10px; font-family: monospace; margin-top: 4px; }
+.pos-grid .lbl { color: #6688aa; }
+.pos-grid .val { color: #fff; font-weight: bold; text-align: right; }
+.pos-grid .val.x { color: #ff5555; }
+.pos-grid .val.y { color: #00ff88; }
+.pos-grid .val.z { color: #66ccff; }
+
+.coord-real { background: rgba(0,0,0,0.4); border: 1px solid #2a3a4a; border-radius: 3px; padding: 5px 7px; margin-top: 5px; font-family: monospace; font-size: 9px; }
+.coord-real .row { display: flex; justify-content: space-between; margin: 2px 0; }
+.coord-real .k { color: #6688aa; }
+.coord-real .v { color: #00ff88; font-weight: bold; }
+.coord-real .v.lat { color: #ffb366; }
+.coord-real .v.lon { color: #66ccff; }
+.coord-real .v.alt { color: #ff66cc; }
+
+.speed-meter { height: 8px; background: #1a1a2e; border-radius: 4px; overflow: hidden; margin-top: 4px; }
+.speed-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #00ff88, #ffe600, #ff0055); transition: width 0.15s linear; }
+
+.time-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 4px; }
+.time-cell { background: rgba(0,0,0,0.5); border: 1px solid #1a3848; padding: 4px 6px; border-radius: 3px; }
+.time-cell .lbl { font-size: 7.5px; color: #667788; letter-spacing: 1px; text-transform: uppercase; }
+.time-cell .val { font-size: 11px; color: #fff; font-weight: bold; font-family: monospace; }
+.time-cell.t4d .val { color: #ffb366; }
+.time-cell.t3d .val { color: #00e6ff; }
+.time-cell.treal .val { color: #ff66cc; }
+.time-cell.tlog .val { color: #66ff99; }
+
+.spectrum-container { background: #000; border: 1px solid #00f0ff44; border-radius: 3px; padding: 4px; margin-top: 4px; }
+.spectrum-canvas { display: block; width: 100%; height: 80px; background: #000; }
+.spectrum-legend { display: flex; justify-content: space-between; font-size: 7px; color: #668899; margin-top: 2px; }
+
+#console-log {
+    flex-grow: 1; min-height: 70px;
+    background: #000; border: 1px solid #00f0ff33;
+    padding: 8px; font-size: 8.5px; color: #33ff99;
+    overflow-y: auto; border-radius: 3px; line-height: 1.35;
+    font-family: monospace;
+}
+#console-log .ts { color: #ff66cc; }
+#console-log .act { color: #ff0055; font-weight: bold; }
+
+#stage-banner {
+    position: absolute; top: 12px; right: 12px;
+    background: rgba(2, 6, 14, 0.9);
+    border: 1px solid #ff66cc;
+    padding: 6px 14px; border-radius: 20px;
+    font-size: 10px; font-weight: bold; color: #fff;
+    letter-spacing: 1.5px; z-index: 5;
+    box-shadow: 0 0 18px rgba(255,102,204,0.5);
+    pointer-events: none;
+}
+#actors-overlay {
+    position: absolute; top: 12px; left: 520px;
+    display: flex; gap: 8px; z-index: 5;
+    pointer-events: none;
+}
+.actor-box {
+    background: rgba(3, 10, 20, 0.92);
+    border-radius: 6px; padding: 6px 10px;
+    font-size: 9px; max-width: 240px; white-space: nowrap;
+}
+
+#universal-panel {
+    position: absolute; top: 12px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(2, 5, 14, 0.92);
+    border: 1px solid #ff66cc;
+    border-radius: 6px; padding: 6px 12px;
+    z-index: 6;
+    box-shadow: 0 0 22px rgba(255, 102, 204, 0.5);
+    display: flex; gap: 10px; font-size: 9px;
+    pointer-events: none;
+}
+.up-cell { text-align: center; }
+.up-cell .lbl { color: #aaa; font-size: 7.5px; letter-spacing: 1px; }
+.up-cell .val { color: #fff; font-weight: bold; font-size: 10px; font-family: monospace; }
+.up-cell.einstein .val { color: #ffb366; }
+.up-cell.newton   .val { color: #66ccff; }
+.up-cell.dirac    .val { color: #ff66ff; }
+.up-cell.fock     .val { color: #66ff99; }
+.up-cell.string   .val { color: #ffff66; }
+.up-cell.lorentz  .val { color: #b366ff; }
+.up-cell.universal .val { color: #ff66cc; }
+
+#wave-vision-panel {
+    position: absolute; top: 66px; left: 520px;
+    width: 360px;
+    background: rgba(2, 5, 14, 0.94);
+    border: 1px solid #00e6ff;
+    border-radius: 6px; padding: 8px;
+    z-index: 6;
+    box-shadow: 0 0 22px rgba(0, 230, 255, 0.35);
+}
+#wave-vision-panel.hidden { opacity: 0.15; pointer-events: none; }
+.wave-header {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 9px; font-weight: bold; color: #00e6ff;
+    letter-spacing: 1px; margin-bottom: 4px;
+}
+#wave-canvas { display: block; width: 100%; height: 100px; background: #000; border: 1px solid #00e6ff33; border-radius: 3px; }
+
+#bosonic-panel {
+    position: absolute; bottom: 12px; left: 520px;
+    width: 340px;
+    background: rgba(20, 10, 2, 0.94);
+    border: 1px solid #ffb366;
+    border-radius: 6px; padding: 8px;
+    z-index: 6;
+    box-shadow: 0 0 22px rgba(255, 179, 102, 0.35);
+}
+#bosonic-panel.hidden { display: none; }
+.bos-header { display: flex; justify-content: space-between; align-items: center; font-size: 9px; font-weight: bold; color: #ffb366; letter-spacing: 1px; margin-bottom: 4px; }
+.bos-grid { display: grid; grid-template-columns: repeat(13, 1fr); gap: 3px; }
+.bos-channel { aspect-ratio: 1; background: #1a0e05; border: 1px solid #4b2a10; border-radius: 2px; position: relative; overflow: hidden; }
+.bos-channel::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 100%, #ffb366 0%, transparent 70%); opacity: var(--amp, 0); transition: opacity 0.1s linear; }
+.bos-channel.anti::before { background: radial-gradient(circle at 50% 100%, #ff66cc 0%, transparent 70%); }
+.bos-channel .label { position: absolute; top: 1px; left: 2px; font-size: 6px; color: #ffb366; font-weight: bold; opacity: 0.75; }
+
+#realtime-overlay {
+    position: absolute; bottom: 12px; left: 520px;
+    width: 220px;
+    background: rgba(2, 5, 14, 0.92);
+    border: 1px solid #ff66cc;
+    border-radius: 6px; padding: 8px 12px;
+    z-index: 6;
+    box-shadow: 0 0 18px rgba(255, 102, 204, 0.4);
+    font-family: monospace; pointer-events: none;
+    transform: translateY(-120px);
+}
+#realtime-overlay .rt-time { font-size: 20px; color: #fff; font-weight: bold; letter-spacing: 1.5px; text-shadow: 0 0 12px rgba(255,102,204,0.8); }
+#realtime-overlay .rt-date { font-size: 9px; color: #ff66cc; margin-top: 2px; }
+#realtime-overlay .rt-zone { font-size: 7px; color: #667788; margin-top: 2px; }
+#realtime-overlay .rt-coords { font-size: 8px; color: #ff9900; margin-top: 4px; padding-top: 4px; border-top: 1px dashed #334455; }
+
+#position-overlay {
+    position: absolute; top: 66px; right: 12px;
+    width: 360px;
+    background: rgba(2, 5, 14, 0.94);
+    border: 1px solid #00ff88;
+    border-radius: 6px; padding: 10px;
+    z-index: 7;
+    box-shadow: 0 0 22px rgba(0, 255, 136, 0.35);
+    font-family: monospace;
+}
+#position-overlay .po-header { display: flex; justify-content: space-between; align-items: center; font-size: 10px; font-weight: bold; color: #00ff88; letter-spacing: 1px; margin-bottom: 6px; border-bottom: 1px solid #00ff8833; padding-bottom: 4px; }
+#position-overlay .po-sub { font-size: 8px; color: #667788; letter-spacing: 1px; margin: 6px 0 3px 0; text-transform: uppercase; }
+#position-overlay .po-row { display: flex; justify-content: space-between; font-size: 10px; margin: 2px 0; }
+#position-overlay .po-row .k { color: #6688aa; }
+#position-overlay .po-row .v { color: #fff; font-weight: bold; }
+#position-overlay .po-row .v.x { color: #ff5555; }
+#position-overlay .po-row .v.y { color: #00ff88; }
+#position-overlay .po-row .v.z { color: #66ccff; }
+#position-overlay .po-row .v.lat { color: #ffb366; }
+#position-overlay .po-row .v.lon { color: #66ccff; }
+#position-overlay .po-row .v.alt { color: #ff66cc; }
+#position-overlay .po-row .v.speed { color: #ffe600; }
+#position-overlay .po-row .v.dist { color: #00e6ff; }
+
+/* ACTION HUD: bottom-left */
+#action-hud {
+    position: absolute; bottom: 12px; left: 12px;
+    background: rgba(2, 5, 14, 0.92);
+    border: 1px solid #ff0055;
+    border-radius: 6px;
+    padding: 8px 12px;
+    z-index: 7;
+    box-shadow: 0 0 22px rgba(255, 0, 85, 0.5);
+    font-family: monospace;
+    min-width: 240px;
+    pointer-events: none;
+}
+#action-hud .ah-title {
+    font-size: 9px; color: #ff0055; font-weight: bold;
+    letter-spacing: 1.5px; margin-bottom: 4px;
+    border-bottom: 1px solid #ff005533;
+    padding-bottom: 3px;
+}
+#action-hud .ah-row {
+    display: flex; justify-content: space-between;
+    font-size: 9px; margin: 2px 0;
+}
+#action-hud .k { color: #6688aa; }
+#action-hud .v { color: #fff; font-weight: bold; }
+#action-hud .v.live { color: #00ff88; }
+#action-hud .v.warn { color: #ffe600; }
+#action-hud .v.hot { color: #ff5555; }
+
+#hover-tooltip {
+    position: absolute;
+    background: rgba(2, 5, 14, 0.95);
+    border: 1px solid #00ff88;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 9px;
+    color: #00ff88;
+    font-family: monospace;
+    pointer-events: none;
+    z-index: 20;
+    opacity: 0;
+    transition: opacity 0.15s;
+    box-shadow: 0 0 12px rgba(0, 255, 136, 0.5);
+}
+#hover-tooltip.visible { opacity: 1; }
+
+#flash-overlay {
+    position: absolute; inset: 0;
+    background: #fff;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 50;
+    transition: opacity 0.08s;
+}
+
+#action-counters {
+    position: absolute; top: 60px; right: 12px;
+    display: flex; gap: 6px; flex-wrap: wrap;
+    z-index: 8;
+    justify-content: flex-end;
+    width: 360px;
+}
+.action-chip {
+    background: rgba(2, 5, 14, 0.92);
+    border: 1px solid #ff0055;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 9px;
+    color: #fff;
+    font-family: monospace;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    animation: chipPop 0.3s ease;
+}
+@keyframes chipPop {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+#matrix-inspector {
+    position: absolute; bottom: 12px; right: 12px;
+    width: 500px; max-height: 200px;
+    background: rgba(3, 8, 16, 0.95);
+    border: 1px solid #00f0ff; border-radius: 6px;
+    padding: 10px; font-size: 8.5px; color: #00f0ff;
+    overflow: auto; z-index: 5;
+}
+#matrix-inspector.sequencing { border-color: #e066ff; box-shadow: 0 0 22px rgba(224,102,255,0.55); }
+table.matrix-table { border-collapse: collapse; margin-top: 5px; width: 100%; text-align: center; }
+table.matrix-table td { border: 1px solid #1a3a4b; padding: 2px; font-family: monospace; font-size: 8px; }
+table.matrix-table td.zero { color: #334455; }
+table.matrix-table td.nonzero { color: #00ff88; font-weight: bold; }
+table.matrix-table td.tail { color: #334455; }
+
+#sequence-overlay {
+    position: absolute; bottom: 12px; left: 520px;
+    width: 400px;
+    background: rgba(3, 5, 16, 0.96);
+    border: 1px solid #e066ff; border-radius: 6px;
+    padding: 12px; font-size: 10px;
+    z-index: 8;
+    box-shadow: 0 0 24px rgba(224, 102, 255, 0.35);
+    display: none;
+}
+#sequence-overlay.active { display: block; }
+.seq-header { display: flex; justify-content: space-between; align-items: center; font-size: 10px; font-weight: bold; color: #e066ff; letter-spacing: 1px; }
+.seq-progress-bar { height: 5px; background: #1a1a2e; border-radius: 3px; margin: 8px 0; overflow: hidden; }
+#seq-progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #00ff88, #e066ff); transition: width 0.35s ease; }
+.seq-phase { font-size: 9px; color: #ff9900; font-weight: bold; letter-spacing: 1px; margin-bottom: 4px; }
+.seq-dim-big { font-size: 24px; font-weight: bold; color: #fff; letter-spacing: 2px; margin-bottom: 6px; text-shadow: 0 0 12px rgba(224,102,255,0.6); }
+.seq-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 12px; font-size: 9px; color: #a0c0d0; }
+.seq-stats > div { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px dotted #1a3a4b; }
+.seq-stats > div.highlight { grid-column: 1/-1; border-bottom: 1px solid #e066ff; background: rgba(224,102,255,0.08); padding: 4px 6px; border-radius: 3px; margin-top: 4px; color: #fff; font-weight: bold; }
+.seq-val { color: #fff; font-weight: bold; }
+.seq-val.ok { color: #00ff88; }
+.seq-val.err { color: #ff0055; }
+.seq-val.warn { color: #ffe600; }
+
+@media (max-width: 1400px) {
+    #action-counters { width: 300px; }
+}
+@media (max-width: 1200px) {
+    #wave-vision-panel { width: 300px; }
+    #position-overlay { width: 300px; }
+    #matrix-inspector { width: 420px; }
+    #action-hud { min-width: 200px; }
+}
+@media (max-width: 900px) {
+    #wave-vision-panel { width: calc(100vw - 24px); left: 12px; top: 90px; }
+    #bosonic-panel { display: none; }
+    #universal-panel { font-size: 8px; padding: 4px 8px; gap: 6px; }
+    #position-overlay { width: calc(100vw - 24px); left: 12px; right: 12px; top: 250px; }
+    #realtime-overlay { display: none; }
+    #action-hud { min-width: 150px; font-size: 8px; }
+    #action-counters { width: 250px; }
+}
+@media (max-width: 768px) {
+    #sidebar { width: 90vw; max-width: 340px; padding-top: 50px; }
+    #actors-overlay { flex-direction: column; top: 50px; left: 12px; }
+    #matrix-inspector { width: calc(100vw - 24px); right: 12px; left: 12px; max-height: 130px; }
+    #stage-banner { display: none; }
+    #sequence-overlay { width: calc(100vw - 24px); left: 12px; bottom: 180px; }
+}
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+<button id="floating-toggle-btn" type="button">
+    <span id="toggle-icon">☰</span><span id="toggle-text">Menú</span>
+</button>
+
+<div id="sidebar">
+    <h1>Universal Physics · ACTION <span class="tag">· 26D · Real</span></h1>
+
+    <!-- ACCIONES VISIBLES TOTALES -->
+    <div class="section-title" style="color:#ff0055;">💥 ACCIONES SOBRE EL GRÁFICO</div>
+    <div class="btn-grid" style="grid-template-columns:1fr 1fr; gap:5px;">
+        <button type="button" class="control-btn action-btn act-bang"   onclick="app.action('bang')">💥 BIG BANG</button>
+        <button type="button" class="control-btn action-btn act-vortex" onclick="app.action('vortex')">🌀 VÓRTICE</button>
+        <button type="button" class="control-btn action-btn act-pulse"  onclick="app.action('pulse')">⚡ PULSO EM</button>
+        <button type="button" class="control-btn action-btn act-shock"  onclick="app.action('shock')">🌊 SHOCK</button>
+        <button type="button" class="control-btn action-btn act-impact" onclick="app.action('impact')">☄ IMPACTO</button>
+        <button type="button" class="control-btn action-btn act-focus"  onclick="app.action('focus')">🎯 FOCO</button>
+        <button type="button" class="control-btn action-btn act-over" style="grid-column:1/-1;" onclick="app.action('overdrive')">🔥 OVERDRIVE MODE</button>
+    </div>
+    <div style="font-size:8.5px; color:#668899; padding:4px 0; text-align:center; line-height:1.4;">
+        🖱 <b>Click</b> en escena = shockwave · <b>Drag probe</b> = mover · <b>Shift+drag</b> = orbitar
+    </div>
+
+    <!-- GPS ORIGEN -->
+    <div class="hud-card" style="border-color:#ff9900;">
+        <div class="stat-row">
+            <span style="color:#ff9900;font-weight:bold;">📍 ORIGEN GPS</span>
+            <span id="gps-status" class="hl-orange">Iniciando…</span>
+        </div>
+        <div class="stat-row"><span>Latitud:</span><span class="stat-val" id="gps-lat">—</span></div>
+        <div class="stat-row"><span>Longitud:</span><span class="stat-val" id="gps-lon">—</span></div>
+        <div class="stat-row"><span>Altitud:</span><span class="stat-val" id="gps-alt">—</span></div>
+        <div class="stat-row"><span>Fuente:</span><span class="hl-orange" id="gps-src">—</span></div>
+    </div>
+
+    <!-- ESCALA -->
+    <div class="hud-card" style="border-color:#66ccff;">
+        <div class="stat-row">
+            <span style="color:#66ccff;font-weight:bold;">📐 ESCALA</span>
+            <span class="hl-blue" id="scale-val">100 m/u</span>
+        </div>
+        <div class="btn-grid" style="grid-template-columns:repeat(4,1fr); gap:3px; margin-top:4px;">
+            <button type="button" class="control-btn scale-btn" style="justify-content:center; padding:4px;" data-scale="1" onclick="app.setScale(1)">1 m</button>
+            <button type="button" class="control-btn scale-btn" style="justify-content:center; padding:4px;" data-scale="10" onclick="app.setScale(10)">10 m</button>
+            <button type="button" class="control-btn scale-btn active" style="justify-content:center; padding:4px;" data-scale="100" onclick="app.setScale(100)">100 m</button>
+            <button type="button" class="control-btn scale-btn" style="justify-content:center; padding:4px;" data-scale="1000" onclick="app.setScale(1000)">1 km</button>
+        </div>
+    </div>
+
+    <!-- POSICIÓN -->
+    <div class="hud-card" style="border-color:#00ff88;">
+        <div class="stat-row">
+            <span style="color:#00ff88;font-weight:bold;">🎯 POSICIÓN DEL PROBE</span>
+            <span class="hl-green" id="pos-status">RASTREANDO</span>
+        </div>
+        <div class="pos-grid">
+            <span class="lbl">X (Este):</span><span class="val x" id="pos-x">0.000</span>
+            <span class="lbl">Y (Arriba):</span><span class="val y" id="pos-y">0.000</span>
+            <span class="lbl">Z (Sur):</span><span class="val z" id="pos-z">0.000</span>
+            <span class="lbl">Distancia:</span><span class="val" id="pos-dist">0.00 m</span>
+        </div>
+        <div class="coord-real">
+            <div class="row"><span class="k">Latitud:</span><span class="v lat" id="real-lat">—</span></div>
+            <div class="row"><span class="k">Longitud:</span><span class="v lon" id="real-lon">—</span></div>
+            <div class="row"><span class="k">Altitud:</span><span class="v alt" id="real-alt">—</span></div>
+            <div class="row"><span class="k">Azimut:</span><span class="v" id="real-az">—</span></div>
+            <div class="row"><span class="k">Elevación:</span><span class="v" id="real-el">—</span></div>
+        </div>
+        <div class="stat-row" style="margin-top:6px;">
+            <span>Rapidez:</span><span class="hl-yellow" id="pos-speed">0.00 m/s</span>
+        </div>
+        <div class="speed-meter"><div class="speed-bar" id="speed-bar"></div></div>
+    </div>
+
+    <!-- RELOJ REAL -->
+    <div class="hud-card" style="border-color:#ff66cc;">
+        <div class="stat-row">
+            <span style="color:#ff66cc;font-weight:bold;">⏰ RELOJ REAL</span>
+            <span id="rt-time" class="hl-pink" style="font-size:14px;font-family:monospace;">--:--:--</span>
+        </div>
+        <div class="stat-row"><span>Fecha:</span><span class="stat-val" id="rt-date">—</span></div>
+        <div class="stat-row"><span>Zona:</span><span class="hl-purple" id="rt-zone">—</span></div>
+    </div>
+
+    <!-- TIEMPOS -->
+    <div class="hud-card" style="border-color:#e066ff;">
+        <div class="stat-row"><span style="color:#e066ff;font-weight:bold;">⏱ TIEMPO — 4D / 3D / FRAMES</span></div>
+        <div class="time-grid">
+            <div class="time-cell t4d"><div class="lbl">t⁴ᴰ Spacetime</div><div class="val" id="t4d-val">0.0000 s</div></div>
+            <div class="time-cell t3d"><div class="lbl">t³ᴰ Proyectado</div><div class="val" id="t3d-val">0.0000 s</div></div>
+            <div class="time-cell tlog"><div class="lbl">Δt desde inicio</div><div class="val" id="tlog-val">+0.000 s</div></div>
+            <div class="time-cell treal"><div class="lbl">Frames</div><div class="val" id="frame-count">0</div></div>
+        </div>
+    </div>
+
+    <!-- ESPECTRÓMETRO -->
+    <div class="hud-card" style="border-color:#00e6ff;">
+        <div class="stat-row">
+            <span style="color:#00e6ff;font-weight:bold;">📡 ESPECTRÓMETRO REAL</span>
+            <span id="spec-peak" class="hl-yellow">— Hz</span>
+        </div>
+        <div class="spectrum-container">
+            <canvas id="spectrum-canvas" class="spectrum-canvas" width="900" height="160"></canvas>
+            <div class="spectrum-legend">
+                <span>0 Hz</span>
+                <span id="spec-band">Δf = 0.117 Hz</span>
+                <span>30 Hz</span>
+            </div>
+        </div>
+        <div class="stat-row" style="margin-top:5px;"><span>Frec. dominante:</span><span class="hl-cyan" id="spec-dom">— Hz</span></div>
+        <div class="stat-row"><span>Energía:</span><span class="hl-cyan" id="spec-energy">—</span></div>
+        <div class="stat-row"><span>Armónicos:</span><span class="hl-cyan" id="spec-harmonics">—</span></div>
+        <div class="stat-row"><span>SNR:</span><span class="hl-cyan" id="spec-snr">— dB</span></div>
+    </div>
+
+    <!-- WAVE VISION -->
+    <div class="hud-card" style="border-color:#00e6ff;">
+        <div class="stat-row"><span style="color:#00e6ff;font-weight:bold;">🌊 WAVE VISION</span><span class="hl-cyan" id="wave-peak">—</span></div>
+        <div class="stat-row"><span>Frecuencia:</span><span class="hl-cyan" id="wave-freq-dom">— Hz</span></div>
+        <div class="stat-row"><span>Amplitud p-p:</span><span class="hl-cyan" id="wave-amp">—</span></div>
+        <div class="stat-row"><span>RMS:</span><span class="hl-cyan" id="wave-rms">—</span></div>
+        <div class="stat-row"><span>Fase:</span><span class="hl-cyan" id="wave-phase">— rad</span></div>
+    </div>
+
+    <!-- BOSONES -->
+    <div class="hud-card" style="border-color:#ffb366;">
+        <div class="stat-row"><span style="color:#ffb366;font-weight:bold;">🎼 CANALES BOSÓNICOS</span><span class="hl-orange" id="bos-active">0 / 26</span></div>
+        <div class="stat-row"><span>Modo dominante:</span><span class="hl-orange" id="bos-dom">—</span></div>
+        <div class="stat-row"><span>Paridad:</span><span class="hl-pink" id="bos-parity">—</span></div>
+    </div>
+
+    <div class="section-title">NÚCLEO UNIVERSAL</div>
+    <div class="btn-grid">
+        <button type="button" class="control-btn universal-btn" onclick="app.toggleUniversal()">
+            <span>🌌 UNIVERSAL MODE</span><span>[ON/OFF]</span>
+        </button>
+    </div>
+
+    <div class="btn-grid" style="grid-template-columns:1fr 1fr; gap:4px;">
+        <button type="button" class="control-btn newton-btn"  onclick="app.pulse('newton')">🍎 Newton</button>
+        <button type="button" class="control-btn einstein-btn" onclick="app.pulse('einstein')">🌀 Einstein</button>
+        <button type="button" class="control-btn dirac-btn"    onclick="app.pulse('dirac')">⚛ Dirac</button>
+        <button type="button" class="control-btn fock-btn"     onclick="app.pulse('fock')">🎼 Fock</button>
+        <button type="button" class="control-btn string-btn"   onclick="app.pulse('string')">🧵 Cuerdas</button>
+        <button type="button" class="control-btn lorentz-btn"  onclick="app.pulse('lorentz')">⏱ Lorentz</button>
+    </div>
+
+    <div class="section-title">VISUALIZACIÓN</div>
+    <div class="btn-grid" style="grid-template-columns:1fr 1fr; gap:4px;">
+        <button type="button" id="wave-toggle" class="control-btn active" style="justify-content:center;" onclick="app.toggleWaveVision()">🌊 Wave</button>
+        <button type="button" id="bos-toggle"  class="control-btn active" style="justify-content:center;" onclick="app.toggleBosonicPanel()">🎼 Bosones</button>
+    </div>
+
+    <div class="section-title">RASTREO</div>
+    <div class="btn-grid" style="grid-template-columns:1fr 1fr; gap:4px;">
+        <button type="button" class="control-btn active" id="trail-btn" style="justify-content:center;" onclick="app.toggleTrail()">🖍 Trayectoria</button>
+        <button type="button" class="control-btn active" id="axes-btn" style="justify-content:center;" onclick="app.toggleAxes()">📐 Ejes XYZ</button>
+        <button type="button" class="control-btn active" id="grid-btn" style="justify-content:center;" onclick="app.toggleMetricGrid()">📏 Grid</button>
+        <button type="button" class="control-btn" style="justify-content:center;" onclick="app.resetTrail()">↺ Reset</button>
+    </div>
+
+    <div class="section-title">SECUENCIA / MATRIZ</div>
+    <div class="btn-grid">
+        <button type="button" id="seq-run-btn" class="control-btn sequence-btn" onclick="app.runSequence()">
+            <span>🔬 Secuencia 5D→26D + Reversal</span><span>[SEQ]</span>
+        </button>
+        <button type="button" class="control-btn" onclick="app.verifyMatrix()">🔍 Verificar Matriz</button>
+    </div>
+
+    <div class="section-title">REGISTRO</div>
+    <div id="console-log" role="log"></div>
+</div>
+
+<div id="viewport-container">
+    <div id="stage-banner">ACCIONES: <span id="banner-text" style="color:#ff66cc;">LISTO — Click en escena</span></div>
+
+    <div id="actors-overlay">
+        <div class="actor-box" style="border:1px solid #00ff88; color:#00ff88;">
+            <strong>👤 ACTOR 3:</strong> Marcos A. Mora Abreu
+        </div>
+        <div class="actor-box" style="border:1px solid #ff66cc; color:#ff66cc;">
+            <strong>🤖 ACTOR 4:</strong> Gemini AI Universal
+        </div>
+    </div>
+
+    <!-- Action counters chips -->
+    <div id="action-counters"></div>
+
+    <div id="universal-panel">
+        <div class="up-cell einstein"><div class="lbl">EINSTEIN R</div><div class="val" id="up-einstein">—</div></div>
+        <div class="up-cell newton"><div class="lbl">NEWTON Φ</div><div class="val" id="up-newton">—</div></div>
+        <div class="up-cell dirac"><div class="lbl">DIRAC ψ</div><div class="val" id="up-dirac">—</div></div>
+        <div class="up-cell fock"><div class="lbl">FOCK ⟨N⟩</div><div class="val" id="up-fock">—</div></div>
+        <div class="up-cell string"><div class="lbl">CUERDAS T</div><div class="val" id="up-string">—</div></div>
+        <div class="up-cell lorentz"><div class="lbl">LORENTZ γ</div><div class="val" id="up-lorentz">—</div></div>
+        <div class="up-cell universal"><div class="lbl">UNIV Φ<sub>U</sub></div><div class="val" id="up-universal">—</div></div>
+    </div>
+
+    <div id="wave-vision-panel">
+        <div class="wave-header">
+            <span>🌊 WAVE VISION · SEÑAL</span>
+            <span id="wave-fps">60 fps</span>
+        </div>
+        <canvas id="wave-canvas" width="720" height="200"></canvas>
+    </div>
+
+    <div id="position-overlay">
+        <div class="po-header">
+            <span>🎯 RASTREADOR REAL 3D</span>
+            <span id="po-fps">60 fps</span>
+        </div>
+        <div class="po-sub">▸ CARTESIANAS</div>
+        <div class="po-row"><span class="k">X (Este):</span><span class="v x" id="po-x">0.000 u</span></div>
+        <div class="po-row"><span class="k">Y (Arriba):</span><span class="v y" id="po-y">0.000 u</span></div>
+        <div class="po-row"><span class="k">Z (Sur):</span><span class="v z" id="po-z">0.000 u</span></div>
+        <div class="po-sub">▸ GEOGRÁFICAS</div>
+        <div class="po-row"><span class="k">Latitud:</span><span class="v lat" id="po-lat">—</span></div>
+        <div class="po-row"><span class="k">Longitud:</span><span class="v lon" id="po-lon">—</span></div>
+        <div class="po-row"><span class="k">Altitud:</span><span class="v alt" id="po-alt">—</span></div>
+        <div class="po-sub">▸ VECTORES</div>
+        <div class="po-row"><span class="k">Distancia:</span><span class="v dist" id="po-dist">—</span></div>
+        <div class="po-row"><span class="k">Azimut:</span><span class="v" id="po-az">—</span></div>
+        <div class="po-row"><span class="k">Elevación:</span><span class="v" id="po-el">—</span></div>
+        <div class="po-row"><span class="k">Rapidez:</span><span class="v speed" id="po-speed">0.00 m/s</span></div>
+    </div>
+
+    <div id="bosonic-panel">
+        <div class="bos-header">
+            <span>🎼 CANALES BOSÓNICOS · 26D</span>
+            <span id="bos-sum">ΣΩ = 0.00</span>
+        </div>
+        <div class="bos-grid" id="bos-grid"></div>
+    </div>
+
+    <div id="realtime-overlay">
+        <div class="rt-time" id="rt-time-ov">--:--:--</div>
+        <div class="rt-date" id="rt-date-ov">---</div>
+        <div class="rt-zone" id="rt-zone-ov">ZONA: —</div>
+        <div class="rt-coords" id="rt-coords-ov">📡 GPS: buscando…</div>
+    </div>
+
+    <!-- ACTION HUD -->
+    <div id="action-hud">
+        <div class="ah-title">⚡ ACCIÓN VISIBLE TOTAL</div>
+        <div class="ah-row"><span class="k">Ataques activos:</span><span class="v hot" id="act-attacks">0</span></div>
+        <div class="ah-row"><span class="k">Shockwaves vivas:</span><span class="v live" id="act-shocks">0</span></div>
+        <div class="ah-row"><span class="k">Bursts partículas:</span><span class="v live" id="act-bursts">0</span></div>
+        <div class="ah-row"><span class="k">Multiplicador energía:</span><span class="v warn" id="act-energy">1.0×</span></div>
+        <div class="ah-row"><span class="k">Probe:</span><span class="v" id="act-probe-state">AUTO-ORBIT</span></div>
+        <div class="ah-row"><span class="k">Última acción:</span><span class="v" id="act-last">—</span></div>
+    </div>
+
+    <div id="hover-tooltip">—</div>
+    <div id="flash-overlay"></div>
+
+    <div id="matrix-inspector">
+        <div style="font-weight:bold; margin-bottom:4px; display:flex; justify-content:space-between; gap:8px;">
+            <span id="mat-title">MATRIZ INVARIANTE UNIVERSAL</span>
+            <span id="mat-dim" style="color:#ff66cc;">[26D]</span>
+        </div>
+        <div style="font-size:8px; color:#aaa; margin-bottom:4px;">
+            M(i,j) = 1/(i! · j!) si i ≡ j (mod 2), sino 0
+        </div>
+        <div id="mat-content">Inicializando...</div>
+    </div>
+
+    <div id="sequence-overlay">
+        <div class="seq-header">
+            <span>🔬 SECUENCIA TRANSFORMACIONAL</span>
+            <span id="seq-progress">0 / 18</span>
+        </div>
+        <div class="seq-progress-bar"><div id="seq-progress-fill"></div></div>
+        <div class="seq-phase" id="seq-phase">LISTO</div>
+        <div class="seq-dim-big" id="seq-dim">— D</div>
+        <div class="seq-stats">
+            <div><span>Matriz:</span><span class="seq-val" id="seq-size">—</span></div>
+            <div><span>Simetría:</span><span class="seq-val" id="seq-sym">—</span></div>
+            <div><span>Rango 2:</span><span class="seq-val" id="seq-rank2">—</span></div>
+            <div><span>||M||<sub>F</sub>:</span><span class="seq-val" id="seq-frobenius">—</span></div>
+            <div class="highlight"><span>Error Reversal:</span><span id="seq-error">—</span></div>
+        </div>
+    </div>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   1. MOTOR MATRICIAL
+   ============================================================ */
+class MatrixEngine {
+    constructor() { this._fact = { 0: 1, 1: 1 }; }
+    factorial(n) {
+        if (this._fact[n] !== undefined) return this._fact[n];
+        let r = 1;
+        for (let i = 2; i <= n; i++) r *= i;
+        this._fact[n] = r; return r;
+    }
+    getMatrix(dim) {
+        const N = dim + 1;
+        const M = new Array(N);
+        for (let i = 0; i < N; i++) {
+            const row = new Float64Array(N);
+            const fi = this.factorial(i);
+            for (let j = 0; j < N; j++) {
+                if ((i & 1) === (j & 1)) row[j] = 1.0 / (fi * this.factorial(j));
+            }
+            M[i] = row;
+        }
+        return M;
+    }
+    analyze(M) {
+        const N = M.length;
+        let symmetric = true, frobenius = 0;
+        for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+            const v = M[i][j];
+            if (v !== 0) frobenius += v * v;
+            if (i < j && Math.abs(M[i][j] - M[j][i]) > 1e-15) symmetric = false;
+        }
+        frobenius = Math.sqrt(frobenius);
+        const ev = [], od = [];
+        for (let i = 0; i < N; i++) ((i & 1) === 0 ? ev : od).push(i);
+        const isRank1 = (idx) => {
+            for (let a of idx) for (let b of idx) for (let c of idx) for (let d of idx)
+                if (Math.abs(M[a][b]*M[c][d] - M[a][d]*M[c][b]) > 1e-15) return false;
+            return true;
+        };
+        return { symmetric, frobenius, rank2: isRank1(ev) && isRank1(od), N };
+    }
+    frobeniusDiff(A, B) {
+        const N = A.length;
+        let s = 0;
+        for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+            const d = A[i][j] - B[i][j]; s += d * d;
+        }
+        return Math.sqrt(s);
+    }
+}
+
+/* ============================================================
+   2. KERNEL UNIVERSAL
+   ============================================================ */
+class UniversalKernel {
+    constructor() {
+        this.D = 26;
+        this.spinors = [];
+        for (let i = 0; i < this.D; i++) this.spinors.push({ re: 0, im: 0, phase: Math.random() * 6.28 });
+        this.fockN = new Float64Array(this.D);
+        this.stringT = new Float64Array(this.D);
+        this.gamma = new Float64Array(this.D);
+        this.R_scalar = 1; this.Phi_newton = 9.8; this.psi_norm = 0;
+        this.N_avg = 0; this.T_string = 0; this.gamma_avg = 1; this.Phi_U = 0;
+        this.universalMode = true;
+        this.pulses = { einstein: 0, newton: 0, dirac: 0, fock: 0, string: 0, lorentz: 0 };
+        // Energía global inyectada por acciones
+        this.energyBoost = 0;
+        this.overdriveActive = false;
+    }
+    step(dt, t) {
+        // Energía global
+        this.energyBoost = Math.max(0, this.energyBoost - dt * 0.5);
+
+        this.R_scalar = 1 + 0.3 * Math.sin(t * 0.4) + 0.1 * Math.cos(t * 1.1) + this.energyBoost * 0.8;
+
+        this.Phi_newton = 9.8 * (1 + 0.2 * Math.sin(t * 0.3)) * (1 + this.energyBoost * 0.5);
+
+        let psi2 = 0;
+        for (let i = 0; i < this.D; i++) {
+            const s = this.spinors[i];
+            const om = 0.5 + i * 0.07;
+            s.phase += dt * om * (this.universalMode ? 1 : 1 + this.pulses.dirac * 2.5);
+            const amp = 0.5 + 0.5 * Math.sin(t * 0.6 + i * 0.9) + this.energyBoost * 0.3;
+            s.re = amp * Math.cos(s.phase);
+            s.im = amp * Math.sin(s.phase);
+            psi2 += amp * amp;
+        }
+        this.psi_norm = Math.sqrt(psi2);
+
+        let nSum = 0;
+        for (let i = 0; i < this.D; i++) {
+            const target = this.universalMode
+                ? 0.5 + 0.5 * Math.sin(t * (1 + i * 0.13) + i * 0.41)
+                : (i < 10 ? 0.9 : 0.1);
+            this.fockN[i] += (target - this.fockN[i]) * Math.min(1, dt * 1.6);
+            nSum += this.fockN[i];
+        }
+        this.N_avg = nSum / this.D;
+
+        let tSum = 0;
+        for (let i = 0; i < this.D; i++) {
+            const ds = Math.sin(t * 0.8 + i * 0.33) * 0.4 + 0.2;
+            this.stringT[i] = 0.001 * Math.sqrt(1 + ds * ds) * (1 + this.energyBoost * 2);
+            tSum += this.stringT[i];
+        }
+        this.T_string = tSum / this.D;
+
+        let gSum = 0;
+        for (let i = 0; i < this.D; i++) {
+            const vc = Math.min(0.999, 0.3 + 0.6 * Math.abs(Math.sin(t * 0.5 + i * 0.27)) + this.energyBoost * 0.2);
+            this.gamma[i] = 1 / Math.sqrt(1 - vc * vc);
+            gSum += this.gamma[i];
+        }
+        this.gamma_avg = gSum / this.D;
+
+        if (this.universalMode) {
+            this.Phi_U = 0.20 * this.R_scalar + 0.15 * (this.Phi_newton / 9.8) +
+                0.20 * this.psi_norm + 0.15 * this.N_avg +
+                0.15 * (this.T_string * 1e3) + 0.15 * (this.gamma_avg - 1);
+        } else {
+            this.Phi_U = 0;
+            const p = this.pulses;
+            if (p.einstein > 0.1) this.Phi_U += this.R_scalar * p.einstein;
+            if (p.newton > 0.1)   this.Phi_U += (this.Phi_newton / 9.8) * p.newton;
+            if (p.dirac > 0.1)    this.Phi_U += this.psi_norm * p.dirac;
+            if (p.fock > 0.1)     this.Phi_U += this.N_avg * p.fock;
+            if (p.string > 0.1)   this.Phi_U += this.T_string * 1e3 * p.string;
+            if (p.lorentz > 0.1)  this.Phi_U += (this.gamma_avg - 1) * p.lorentz;
+        }
+        for (const k in this.pulses) this.pulses[k] = Math.max(0, this.pulses[k] - dt * 1.5);
+    }
+    sampleSignal(t) {
+        return 0.18 * Math.sin(t * 1.9) + 0.13 * (this.R_scalar - 1) +
+               0.12 * Math.sin(t * 3.1) * this.N_avg +
+               0.15 * Math.sin(t * 0.9 + this.psi_norm) +
+               0.10 * (this.gamma_avg - 1) + 0.22 * (this.Phi_U - 0.5) +
+               this.energyBoost * 0.8;
+    }
+}
+
+/* ============================================================
+   3. ACTION SYSTEM — efectos visibles sobre el gráfico
+   ============================================================ */
+class ActionSystem {
+    constructor(scene, mainGroup) {
+        this.scene = scene;
+        this.mainGroup = mainGroup;
+        this.shockwaves = [];   // ondas de choque expansivas
+        this.bursts = [];       // explosiones de partículas
+        this.bolts = [];        // rayos EM
+        this.impacts = [];      // impactos puntuales
+        this.pulseRings = [];   // anillos de pulso EM
+        this.attackCount = 0;
+        this.lastAction = '—';
+        this.screenShake = 0;
+        this.time = 0;
+    }
+
+    /* --- Efectos --- */
+
+    /** Onda de choque expansiva desde un punto */
+    shockwave(origin, color = 0xffff66, maxR = 30, duration = 2.5, thickness = 0.08) {
+        const geo = new THREE.RingGeometry(0.1, 0.3, 64);
+        const mat = new THREE.MeshBasicMaterial({
+            color: color, side: THREE.DoubleSide,
+            transparent: true, opacity: 1.0,
+            blending: THREE.AdditiveBlending, depthWrite: false
+        });
+        const ring = new THREE.Mesh(geo, mat);
+        ring.position.copy(origin);
+        ring.lookAt(0, 0, 0);
+        // Orientación esférica — usamos 3 planos ortogonales
+        const mesh1 = ring;
+        const mesh2 = ring.clone(); mesh2.rotation.x = Math.PI / 2;
+        const mesh3 = ring.clone(); mesh3.rotation.y = Math.PI / 2;
+        const group = new THREE.Group();
+        group.add(mesh1, mesh2, mesh3);
+        group.position.copy(origin);
+        this.mainGroup.add(group);
+
+        this.shockwaves.push({
+            group, meshes: [mesh1, mesh2, mesh3],
+            age: 0, duration,
+            maxR, color, thickness
+        });
+        this.attackCount++;
+        return group;
+    }
+
+    /** Explosión de partículas radial */
+    burst(origin, count = 200, color = 0xff0055, speed = 8, life = 1.8) {
+        const geo = new THREE.BufferGeometry();
+        const pos = new Float32Array(count * 3);
+        const vel = new Float32Array(count * 3);
+        const col = new Float32Array(count * 3);
+        const c = new THREE.Color(color);
+        for (let i = 0; i < count; i++) {
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            const s = speed * (0.5 + Math.random() * 0.8);
+            vel[i*3]   = Math.sin(phi) * Math.cos(theta) * s;
+            vel[i*3+1] = Math.cos(phi) * s;
+            vel[i*3+2] = Math.sin(phi) * Math.sin(theta) * s;
+            pos[i*3] = origin.x;
+            pos[i*3+1] = origin.y;
+            pos[i*3+2] = origin.z;
+            const j = 0.6 + Math.random() * 0.4;
+            col[i*3] = c.r * j;
+            col[i*3+1] = c.g * j;
+            col[i*3+2] = c.b * j;
+        }
+        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+        const mat = new THREE.PointsMaterial({
+            size: 0.35, vertexColors: true,
+            transparent: true, opacity: 1,
+            blending: THREE.AdditiveBlending, depthWrite: false
+        });
+        const points = new THREE.Points(geo, mat);
+        points.frustumCulled = false;
+        this.mainGroup.add(points);
+        this.bursts.push({ points, geo, vel, count, age: 0, life, origin: origin.clone() });
+        this.attackCount++;
+        return points;
+    }
+
+    /** Rayo EM: línea recta desde origen A hasta B */
+    bolt(from, to, color = 0x00e6ff, life = 1.2) {
+        const points = [];
+        const segs = 20;
+        for (let i = 0; i <= segs; i++) {
+            const t = i / segs;
+            const p = new THREE.Vector3().lerpVectors(from, to, t);
+            // Zigzag eléctrico
+            if (i > 0 && i < segs) {
+                const off = 0.5 * (Math.random() - 0.5);
+                p.x += off; p.y += off; p.z += off;
+            }
+            points.push(p);
+        }
+        const geo = new THREE.BufferGeometry().setFromPoints(points);
+        const mat = new THREE.LineBasicMaterial({
+            color, transparent: true, opacity: 1, linewidth: 2
+        });
+        const line = new THREE.Line(geo, mat);
+        line.frustumCulled = false;
+        this.mainGroup.add(line);
+        this.bolts.push({ line, geo, age: 0, life, from: from.clone(), to: to.clone() });
+        this.attackCount++;
+        return line;
+    }
+
+    /** Anillo de pulso EM desde el origen */
+    pulseRing(origin, color = 0x00e6ff, maxR = 20, life = 1.5) {
+        const geo = new THREE.RingGeometry(0.05, 0.5, 48);
+        const mat = new THREE.MeshBasicMaterial({
+            color, side: THREE.DoubleSide,
+            transparent: true, opacity: 0.9,
+            blending: THREE.AdditiveBlending, depthWrite: false
+        });
+        const ring = new THREE.Mesh(geo, mat);
+        ring.position.copy(origin);
+        this.mainGroup.add(ring);
+        this.pulseRings.push({ mesh: ring, geo, age: 0, life, maxR, origin: origin.clone() });
+        this.attackCount++;
+        return ring;
+    }
+
+    /** Impacto puntual con destello */
+    impact(origin, color = 0xff5555) {
+        // Esfera de impacto
+        const geo = new THREE.SphereGeometry(0.3, 16, 16);
+        const mat = new THREE.MeshBasicMaterial({
+            color, transparent: true, opacity: 1,
+            blending: THREE.AdditiveBlending, depthWrite: false
+        });
+        const sphere = new THREE.Mesh(geo, mat);
+        sphere.position.copy(origin);
+        this.mainGroup.add(sphere);
+        this.impacts.push({ mesh: sphere, age: 0, life: 1.0, scale0: 0.3, scale1: 3.0 });
+        this.burst(origin, 150, color, 6, 1.4);
+        this.shockwave(origin, color, 15, 1.8);
+        this.attackCount++;
+        return sphere;
+    }
+
+    /** Activa screen shake */
+    shake(amount = 0.5) {
+        this.screenShake = Math.max(this.screenShake, amount);
+    }
+
+    /* --- Update / render --- */
+    update(dt, t) {
+        this.time += dt;
+        this.screenShake = Math.max(0, this.screenShake - dt * 3);
+
+        // Shockwaves
+        for (let i = this.shockwaves.length - 1; i >= 0; i--) {
+            const s = this.shockwaves[i];
+            s.age += dt;
+            const k = s.age / s.duration;
+            if (k >= 1) {
+                this.mainGroup.remove(s.group);
+                s.meshes.forEach(m => { m.geometry.dispose(); m.material.dispose(); });
+                this.shockwaves.splice(i, 1);
+                continue;
+            }
+            const r = 0.1 + k * s.maxR;
+            const opacity = Math.pow(1 - k, 1.6);
+            s.meshes.forEach(m => {
+                m.scale.set(r, r, r);
+                m.material.opacity = opacity;
+            });
+        }
+
+        // Bursts
+        for (let i = this.bursts.length - 1; i >= 0; i--) {
+            const b = this.bursts[i];
+            b.age += dt;
+            if (b.age >= b.life) {
+                this.mainGroup.remove(b.points);
+                b.geo.dispose();
+                b.points.material.dispose();
+                this.bursts.splice(i, 1);
+                continue;
+            }
+            const pos = b.geo.attributes.position.array;
+            const k = b.age / b.life;
+            const drag = 1 - k * 0.6;
+            for (let j = 0; j < b.count; j++) {
+                pos[j*3]     = b.origin.x + b.vel[j*3]   * b.age * drag;
+                pos[j*3+1]   = b.origin.y + b.vel[j*3+1] * b.age * drag - 0.5 * b.age * b.age;
+                pos[j*3+2]   = b.origin.z + b.vel[j*3+2] * b.age * drag;
+            }
+            b.geo.attributes.position.needsUpdate = true;
+            b.points.material.opacity = 1 - k;
+        }
+
+        // Bolts
+        for (let i = this.bolts.length - 1; i >= 0; i--) {
+            const b = this.bolts[i];
+            b.age += dt;
+            if (b.age >= b.life) {
+                this.mainGroup.remove(b.line);
+                b.geo.dispose();
+                b.line.material.dispose();
+                this.bolts.splice(i, 1);
+                continue;
+            }
+            b.line.material.opacity = 1 - b.age / b.life;
+        }
+
+        // Pulse rings
+        for (let i = this.pulseRings.length - 1; i >= 0; i--) {
+            const p = this.pulseRings[i];
+            p.age += dt;
+            const k = p.age / p.life;
+            if (k >= 1) {
+                this.mainGroup.remove(p.mesh);
+                p.geo.dispose();
+                p.mesh.material.dispose();
+                this.pulseRings.splice(i, 1);
+                continue;
+            }
+            const r = 0.3 + k * p.maxR;
+            p.mesh.scale.set(r, r, r);
+            p.mesh.material.opacity = Math.pow(1 - k, 1.5);
+        }
+
+        // Impacts
+        for (let i = this.impacts.length - 1; i >= 0; i--) {
+            const imp = this.impacts[i];
+            imp.age += dt;
+            const k = imp.age / imp.life;
+            if (k >= 1) {
+                this.mainGroup.remove(imp.mesh);
+                imp.mesh.geometry.dispose();
+                imp.mesh.material.dispose();
+                this.impacts.splice(i, 1);
+                continue;
+            }
+            const s = imp.scale0 + (imp.scale1 - imp.scale0) * k;
+            imp.mesh.scale.setScalar(s);
+            imp.mesh.material.opacity = 1 - k;
+        }
+
+        return this.screenShake;
+    }
+
+    getActiveCount() {
+        return this.shockwaves.length + this.bursts.length + this.bolts.length +
+               this.pulseRings.length + this.impacts.length;
+    }
+}
+
+/* ============================================================
+   4. WAVE VISION
+   ============================================================ */
+class WaveVision {
+    constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.W = this.canvas.width; this.H = this.canvas.height;
+        this.bufferSize = 512;
+        this.waveBuffer = new Float32Array(this.bufferSize);
+        this.spectrumBuffer = new Float32Array(this.bufferSize / 2);
+        this.writeIndex = 0; this.sampleRate = 60;
+        this.dominantFreq = 0; this.peakAmplitude = 0; this.rms = 0; this.instantPhase = 0;
+        this._lastSample = 0; this._phaseAccum = 0;
+        this.fps = 60; this._fpsCount = 0; this._fpsTimer = 0;
+        this.enabled = true;
+    }
+    pushSample(v) {
+        this.waveBuffer[this.writeIndex] = v;
+        this.writeIndex = (this.writeIndex + 1) % this.bufferSize;
+    }
+    computeSpectrum() {
+        const N = this.bufferSize, nb = N / 2;
+        const buf = this.waveBuffer, spec = this.spectrumBuffer;
+        for (let k = 0; k < nb; k++) {
+            let re = 0, im = 0;
+            const om = 2 * Math.PI * k / N;
+            for (let n = 0; n < N; n++) {
+                const w = 0.5 * (1 - Math.cos(2 * Math.PI * n / (N - 1)));
+                const s = buf[(this.writeIndex + n) % N] * w;
+                const a = om * n;
+                re += s * Math.cos(a); im -= s * Math.sin(a);
+            }
+            spec[k] = Math.sqrt(re * re + im * im) / N;
+        }
+    }
+    analyze(dt) {
+        let sq = 0, mn = Infinity, mx = -Infinity;
+        for (let i = 0; i < this.bufferSize; i++) {
+            const v = this.waveBuffer[i];
+            sq += v * v;
+            if (v < mn) mn = v; if (v > mx) mx = v;
+        }
+        this.rms = Math.sqrt(sq / this.bufferSize);
+        this.peakAmplitude = mx - mn;
+        this.computeSpectrum();
+        let mMax = 0, mK = 0;
+        for (let k = 2; k < this.spectrumBuffer.length; k++)
+            if (this.spectrumBuffer[k] > mMax) { mMax = this.spectrumBuffer[k]; mK = k; }
+        this.dominantFreq = mK * this.sampleRate / this.bufferSize;
+        const newS = this.waveBuffer[(this.writeIndex - 1 + this.bufferSize) % this.bufferSize];
+        if (this._lastSample < 0 && newS >= 0) this._phaseAccum += 2 * Math.PI;
+        this.instantPhase = this._phaseAccum % (2 * Math.PI);
+        this._lastSample = newS;
+        this._fpsCount++; this._fpsTimer += dt;
+        if (this._fpsTimer >= 0.5) { this.fps = Math.round(this._fpsCount / this._fpsTimer); this._fpsCount = 0; this._fpsTimer = 0; }
+    }
+    draw() {
+        const ctx = this.ctx, W = this.W, H = this.H;
+        ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+        ctx.strokeStyle = 'rgba(0,230,255,0.10)'; ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = 0; i <= 8; i++) { const y = H/8*i; ctx.moveTo(0,y); ctx.lineTo(W,y); }
+        for (let i = 0; i <= 16; i++) { const x = W/16*i; ctx.moveTo(x,0); ctx.lineTo(x,H); }
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(0,230,255,0.30)';
+        ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
+        const spec = this.spectrumBuffer;
+        let mSpec = 0.0001;
+        for (let k = 0; k < spec.length; k++) if (spec[k] > mSpec) mSpec = spec[k];
+        const barW = W / spec.length;
+        for (let k = 0; k < spec.length; k++) {
+            const h = spec[k] / mSpec * H * 0.45;
+            const hue = 280 + (k / spec.length) * 80;
+            ctx.fillStyle = `hsla(${hue}, 90%, 60%, 0.35)`;
+            ctx.fillRect(k * barW, H - h, Math.max(1, barW - 0.5), h);
+        }
+        ctx.strokeStyle = '#00e6ff'; ctx.lineWidth = 2;
+        ctx.shadowBlur = 10; ctx.shadowColor = '#00e6ff';
+        ctx.beginPath();
+        const N = this.bufferSize;
+        for (let i = 0; i < N; i++) {
+            const v = this.waveBuffer[(this.writeIndex + i) % N];
+            const x = i / (N - 1) * W;
+            const y = H / 2 - v * H * 0.42;
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke(); ctx.shadowBlur = 0;
+        ctx.fillStyle = '#00e6ff'; ctx.font = '9px monospace';
+        ctx.fillText(`RMS=${this.rms.toFixed(4)}  p-p=${this.peakAmplitude.toFixed(3)}`, 6, 12);
+    }
+}
+
+/* ============================================================
+   5. ESPECTRÓMETRO
+   ============================================================ */
+class Spectrometer {
+    constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.W = this.canvas.width; this.H = this.canvas.height;
+        this.FFT_SIZE = 512; this.SAMPLE_RATE = 60;
+        this.buffer = new Float32Array(this.FFT_SIZE);
+        this.spectrum = new Float32Array(this.FFT_SIZE / 2);
+        this.writeIdx = 0;
+        this.window = new Float32Array(this.FFT_SIZE);
+        for (let i = 0; i < this.FFT_SIZE; i++) this.window[i] = 0.5 * (1 - Math.cos(2*Math.PI*i/(this.FFT_SIZE-1)));
+        this.dominantFreq = 0; this.totalEnergy = 0; this.harmonics = 0; this.snr = 0;
+    }
+    pushSample(v) { this.buffer[this.writeIdx] = v; this.writeIdx = (this.writeIdx + 1) % this.FFT_SIZE; }
+    compute() {
+        const N = this.FFT_SIZE, half = N / 2;
+        const buf = this.buffer, win = this.window, spec = this.spectrum;
+        let maxMag = 0, maxK = 0, totalE = 0;
+        for (let k = 0; k < half; k++) {
+            let re = 0, im = 0;
+            const om = 2 * Math.PI * k / N;
+            for (let n = 0; n < N; n++) {
+                const s = buf[(this.writeIdx + n) % N] * win[n];
+                const a = om * n;
+                re += s * Math.cos(a); im -= s * Math.sin(a);
+            }
+            const mag = Math.sqrt(re*re+im*im) / N;
+            spec[k] = mag;
+            totalE += mag * mag;
+            if (k > 1 && mag > maxMag) { maxMag = mag; maxK = k; }
+        }
+        this.dominantFreq = maxK * this.SAMPLE_RATE / N;
+        this.totalEnergy = Math.sqrt(totalE);
+        let h = 0;
+        for (let k = 2; k < half - 1; k++)
+            if (spec[k] > spec[k-1] && spec[k] > spec[k+1] && spec[k] > maxMag * 0.15) h++;
+        this.harmonics = h;
+        let mO = 0, cnt = 0;
+        for (let k = 0; k < half; k++) if (Math.abs(k - maxK) > 3) { mO += spec[k]; cnt++; }
+        mO = cnt > 0 ? mO / cnt : 1e-9;
+        this.snr = 20 * Math.log10((maxMag + 1e-9) / (mO + 1e-9));
+    }
+    draw() {
+        const ctx = this.ctx, W = this.W, H = this.H;
+        ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+        ctx.strokeStyle = 'rgba(0,230,255,0.10)';
+        ctx.beginPath();
+        for (let i = 0; i <= 10; i++) { const x = W/10*i; ctx.moveTo(x,0); ctx.lineTo(x,H); }
+        for (let i = 0; i <= 4; i++)  { const y = H/4*i;  ctx.moveTo(0,y); ctx.lineTo(W,y); }
+        ctx.stroke();
+        const spec = this.spectrum;
+        let maxS = 0.0001;
+        for (let k = 0; k < spec.length; k++) if (spec[k] > maxS) maxS = spec[k];
+        const barW = W / spec.length;
+        for (let k = 0; k < spec.length; k++) {
+            const h = (spec[k] / maxS) * (H * 0.92);
+            const ratio = k / spec.length;
+            const r = Math.floor(ratio * 255);
+            const g = Math.floor(230 - ratio * 130);
+            const b = Math.floor(255 - ratio * 100);
+            ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+            ctx.fillRect(k * barW, H - h, Math.max(1, barW - 0.5), h);
+        }
+        const pk = Math.round(this.dominantFreq * this.FFT_SIZE / this.SAMPLE_RATE);
+        if (pk > 0 && pk < spec.length) {
+            const px = (pk / spec.length) * W;
+            ctx.strokeStyle = '#ffe600'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, H); ctx.stroke();
+            ctx.fillStyle = '#ffe600'; ctx.font = 'bold 10px monospace';
+            ctx.fillText(`${this.dominantFreq.toFixed(2)} Hz`, Math.min(W-80, px+4), 12);
+        }
+        ctx.fillStyle = '#445566'; ctx.font = '8px monospace';
+        ctx.fillText(`FFT=${this.FFT_SIZE} SR=${this.SAMPLE_RATE}Hz Δf=${(this.SAMPLE_RATE/this.FFT_SIZE).toFixed(3)}Hz`, 4, H-4);
+    }
+}
+
+/* ============================================================
+   6. GPS
+   ============================================================ */
+class GeoLocator {
+    constructor() {
+        this.lat = null; this.lon = null; this.alt = null;
+        this.source = '—'; this.status = 'wait';
+        this.fallback = { lat: 10.499520, lon: -66.878310, alt: 900 };
+        this.onUpdate = null;
+    }
+    async locate() {
+        if (navigator.geolocation) {
+            try {
+                const pos = await new Promise((res, rej) => {
+                    navigator.geolocation.getCurrentPosition(res, rej, {
+                        enableHighAccuracy: true, timeout: 8000, maximumAge: 30000
+                    });
+                });
+                this.lat = pos.coords.latitude; this.lon = pos.coords.longitude;
+                this.alt = pos.coords.altitude || 0;
+                this.source = 'GPS navegador'; this.status = 'ok';
+                if (this.onUpdate) this.onUpdate(this);
+                return;
+            } catch (e) {}
+        }
+        this.lat = this.fallback.lat; this.lon = this.fallback.lon; this.alt = this.fallback.alt;
+        this.source = 'Fallback Caracas'; this.status = 'fallback';
+        if (this.onUpdate) this.onUpdate(this);
+    }
+}
+
+/* ============================================================
+   7. POSITION TRACKER
+   ============================================================ */
+class PositionTracker {
+    constructor() {
+        this.R_EARTH = 6371000;
+        this.origin = { lat: 10.499520, lon: -66.878310, alt: 900 };
+        this.scale = 100;
+        this.local = { x: 0, y: 0, z: 0 };
+        this.geo = { lat: 0, lon: 0, alt: 0 };
+        this.velocity = { x: 0, y: 0, z: 0 };
+        this.speed = 0; this.azimuth = 0; this.elevation = 0; this.distance = 0;
+        this.trail = []; this.maxTrail = 800; this.trailEnabled = true;
+        this._prev = null;
+    }
+    setOrigin(lat, lon, alt) { this.origin = { lat, lon, alt: alt || 0 }; }
+    update(worldPos, t, dt) {
+        this.local.x = worldPos.x; this.local.y = worldPos.y; this.local.z = worldPos.z;
+        const east = worldPos.x * this.scale;
+        const north = -worldPos.z * this.scale;
+        const up = worldPos.y * this.scale;
+        const latRad = this.origin.lat * Math.PI / 180;
+        this.geo.lat = this.origin.lat + (north / this.R_EARTH) * (180/Math.PI);
+        this.geo.lon = this.origin.lon + (east / (this.R_EARTH * Math.cos(latRad))) * (180/Math.PI);
+        this.geo.alt = this.origin.alt + up;
+        const horiz = Math.sqrt(east*east + north*north);
+        this.distance = Math.sqrt(east*east + north*north + up*up);
+        this.azimuth = (Math.atan2(east, north) * 180/Math.PI + 360) % 360;
+        this.elevation = Math.atan2(up, horiz) * 180/Math.PI;
+        if (this._prev && dt > 0) {
+            this.velocity.x = (worldPos.x - this._prev.x) * this.scale / dt;
+            this.velocity.y = (worldPos.y - this._prev.y) * this.scale / dt;
+            this.velocity.z = (worldPos.z - this._prev.z) * this.scale / dt;
+            this.speed = Math.sqrt(this.velocity.x**2 + this.velocity.y**2 + this.velocity.z**2);
+        }
+        this._prev = { x: worldPos.x, y: worldPos.y, z: worldPos.z };
+        if (this.trailEnabled) {
+            this.trail.push({ x: worldPos.x, y: worldPos.y, z: worldPos.z });
+            if (this.trail.length > this.maxTrail) this.trail.shift();
+        }
+    }
+    resetTrail() { this.trail.length = 0; }
+}
+
+/* ============================================================
+   8. CANALES BOSÓNICOS
+   ============================================================ */
+class BosonicChannels {
+    constructor() {
+        this.count = 26;
+        this.channels = new Array(this.count);
+        for (let i = 0; i < this.count; i++) {
+            this.channels[i] = {
+                id: i, freq: 432 * Math.pow(2, i / 12),
+                phase: Math.random() * Math.PI * 2,
+                amplitude: 0, targetAmplitude: 0,
+                parity: (i % 2 === 0) ? +1 : -1
+            };
+        }
+        this.time = 0; this.domElements = [];
+        this.dominantIndex = 0; this.sumOmega = 0; this.parityBalance = 0;
+    }
+    bindDOM(gridId) {
+        const grid = document.getElementById(gridId);
+        if (!grid) return;
+        let html = '';
+        for (let i = 0; i < this.count; i++)
+            html += `<div class="bos-channel ${i%2===1?'anti':''}" id="bos-ch-${i}"><span class="label">${i}</span></div>`;
+        grid.innerHTML = html;
+        for (let i = 0; i < this.count; i++) this.domElements[i] = document.getElementById(`bos-ch-${i}`);
+    }
+    exciteAll(base = 1) {
+        for (let i = 0; i < this.count; i++) this.channels[i].targetAmplitude = base * (0.5 + Math.random() * 0.5);
+    }
+    collapse() {
+        for (let i = 0; i < this.count; i++) this.channels[i].targetAmplitude = (i === 0) ? 1.0 : 0.0;
+        this.dominantIndex = 0;
+    }
+    update(dt, kernel = null) {
+        this.time += dt;
+        let sum = 0, maxA = 0, domI = 0, sumP = 0;
+        for (let i = 0; i < this.count; i++) {
+            const ch = this.channels[i];
+            let target = ch.targetAmplitude;
+            if (kernel) target = Math.max(target, kernel.fockN[i] * 0.9);
+            ch.amplitude += (target - ch.amplitude) * Math.min(1, dt * 3.5);
+            ch.phase += dt * (1 + i * 0.13) * 2.5;
+            const env = ch.amplitude * (0.85 + 0.15 * Math.sin(this.time * 2 + i * 0.7));
+            const el = this.domElements[i];
+            if (el) el.style.setProperty('--amp', Math.min(1, Math.abs(env)).toFixed(3));
+            sum += Math.abs(env);
+            sumP += env * ch.parity;
+            if (Math.abs(env) > maxA) { maxA = Math.abs(env); domI = i; }
+        }
+        this.sumOmega = sum;
+        this.dominantIndex = domI;
+        this.parityBalance = sumP / (sum + 1e-9);
+    }
+    sample(t) {
+        let s = 0;
+        for (let i = 0; i < this.count; i++) {
+            const ch = this.channels[i];
+            if (ch.amplitude < 1e-4) continue;
+            s += ch.amplitude * Math.sin(2 * Math.PI * (ch.freq / 432) * 1.5 * t + ch.phase) / this.count;
+        }
+        return s;
+    }
+}
+
+/* ============================================================
+   9. STAGE 3D CON ACCIÓN INTERACTIVA
+   ============================================================ */
+class Stage3D {
+    constructor(containerId, kernel, bosonic, options = {}) {
+        this.container = document.getElementById(containerId);
+        this.kernel = kernel;
+        this.bosonic = bosonic;
+        this.onTick = options.onTick;
+        this.onAction = options.onAction;
+
+        this.scene = new THREE.Scene();
+        this.scene.fog = new THREE.FogExp2(0x000205, 0.006);
+        this.camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 3000);
+        this.camera.position.set(28, 22, 32);
+        this.baseCamPos = this.camera.position.clone();
+
+        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        this.container.appendChild(this.renderer.domElement);
+
+        this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.08;
+        // Deshabilitar left-drag para orbit por defecto — habilitar solo con Shift
+        this.controls.mouseButtons = {
+            LEFT: null,   // reservado para click
+            MIDDLE: THREE.MOUSE.DOLLY,
+            RIGHT: THREE.MOUSE.ROTATE
+        };
+        this.controls.touches = {
+            ONE: THREE.TOUCH.ROTATE,
+            TWO: THREE.TOUCH.DOLLY_PAN
+        };
+
+        this.mainGroup = new THREE.Group();
+        this.scene.add(this.mainGroup);
+        this.clock = new THREE.Clock();
+        this.time = 0;
+
+        this.trailEnabled = true;
+        this.axesEnabled = true;
+        this.metricGridEnabled = true;
+
+        // Raycasting
+        this.raycaster = new THREE.Raycaster();
+        this.mouse = new THREE.Vector2();
+        this.mouseDown = false;
+        this.mouseMoved = false;
+        this.draggingProbe = false;
+        this.dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        this.dragOffset = new THREE.Vector3();
+
+        // Modo focus (cámara mira al probe)
+        this.focusProbe = false;
+
+        // Action system
+        this.actions = new ActionSystem(this.scene, this.mainGroup);
+
+        this.newtonWells = [];
+        this.diracSpinors = [];
+        this.stringLines = [];
+        this.bosonicRings = [];
+        this.vectorArrows = [];
+        this.dimPositions = [];
+        for (let i = 0; i < 26; i++) {
+            const a = (i / 26) * Math.PI * 2;
+            const b = (i / 26) * Math.PI;
+            const r = 4.5 + (i % 4) * 0.6;
+            this.dimPositions.push(new THREE.Vector3(
+                Math.cos(a) * Math.sin(b) * r,
+                Math.sin(b) * r * 0.7,
+                Math.sin(a) * Math.cos(b) * r
+            ));
+        }
+
+        this._build();
+        this._setupInteraction();
+
+        this._boundAnimate = this.animate.bind(this);
+        this._boundResize = this.resize.bind(this);
+        window.addEventListener('resize', this._boundResize);
+        requestAnimationFrame(this._boundAnimate);
+    }
+
+    _build() {
+        this.scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+        const p1 = new THREE.PointLight(0xff66cc, 3.0, 200); p1.position.set(0,0,0); this.scene.add(p1);
+        const p2 = new THREE.PointLight(0x00f0ff, 2.2, 150); p2.position.set(20,25,15); this.scene.add(p2);
+        const p3 = new THREE.PointLight(0xffb366, 1.8, 150); p3.position.set(-20,-15,-18); this.scene.add(p3);
+
+        // Einstein
+        this.einsteinGeo = new THREE.SphereGeometry(2.2, 48, 48);
+        this.einsteinGeoPositions = this.einsteinGeo.attributes.position.array.slice();
+        this.einsteinMesh = new THREE.Mesh(this.einsteinGeo, new THREE.MeshStandardMaterial({
+            color: 0xffb366, emissive: 0x552200, roughness: 0.3, metalness: 0.85
+        }));
+        this.mainGroup.add(this.einsteinMesh);
+        this.einsteinWire = new THREE.Mesh(
+            new THREE.SphereGeometry(2.9, 20, 20),
+            new THREE.MeshBasicMaterial({ color: 0xffb366, wireframe: true, transparent: true, opacity: 0.18 })
+        );
+        this.mainGroup.add(this.einsteinWire);
+
+        // Newton
+        for (let i = 0; i < 6; i++) {
+            const ring = new THREE.Mesh(
+                new THREE.TorusGeometry(1.5 + i * 1.4, 0.02, 6, 48),
+                new THREE.MeshBasicMaterial({ color: 0x66ccff, transparent: true, opacity: 0.0, side: THREE.DoubleSide })
+            );
+            ring.rotation.x = Math.PI / 2;
+            ring.userData = { index: i };
+            this.mainGroup.add(ring);
+            this.newtonWells.push(ring);
+        }
+
+        // Dirac
+        for (let i = 0; i < 26; i++) {
+            const sp = new THREE.Mesh(
+                new THREE.ConeGeometry(0.08, 0.35, 6),
+                new THREE.MeshBasicMaterial({ color: 0xff66ff, transparent: true, opacity: 0.0 })
+            );
+            sp.position.copy(this.dimPositions[i]);
+            this.mainGroup.add(sp);
+            this.diracSpinors.push(sp);
+        }
+
+        // Fock
+        const fcount = 1000;
+        const fgeo = new THREE.BufferGeometry();
+        const fpos = new Float32Array(fcount * 3);
+        const fcol = new Float32Array(fcount * 3);
+        this.fockData = new Array(fcount);
+        for (let i = 0; i < fcount; i++) {
+            const th = Math.random() * Math.PI * 2;
+            const ph = Math.acos(2 * Math.random() - 1);
+            const r = 3.5 + Math.random() * 8;
+            fpos[i*3]   = Math.sin(ph) * Math.cos(th) * r;
+            fpos[i*3+1] = Math.cos(ph) * r * 0.8;
+            fpos[i*3+2] = Math.sin(ph) * Math.sin(th) * r;
+            fcol[i*3] = 0.4; fcol[i*3+1] = 1.0; fcol[i*3+2] = 0.6;
+            this.fockData[i] = { baseR: r, theta: th, phi: ph, phase: Math.random() * Math.PI * 2 };
+        }
+        fgeo.setAttribute('position', new THREE.BufferAttribute(fpos, 3));
+        fgeo.setAttribute('color', new THREE.BufferAttribute(fcol, 3));
+        this.fockCloud = new THREE.Points(fgeo, new THREE.PointsMaterial({
+            size: 0.11, vertexColors: true, transparent: true, opacity: 0.85,
+            blending: THREE.AdditiveBlending, depthWrite: false
+        }));
+        this.fockCloud.frustumCulled = false;
+        this.mainGroup.add(this.fockCloud);
+
+        // Cuerdas
+        for (let s = 0; s < 10; s++) {
+            const segs = 40;
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array((segs + 1) * 3), 3));
+            const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xffff66, transparent: true, opacity: 0.7 }));
+            line.userData = { segments: segs, phase: s * 0.53, radius: 3 + s * 0.5, tiltX: (s - 5) * 0.14, tiltZ: s * 0.21 };
+            this.mainGroup.add(line);
+            this.stringLines.push(line);
+        }
+
+        // Lorentz
+        const lgeo = new THREE.BufferGeometry();
+        const lp = [];
+        for (let i = -8; i <= 8; i += 2) for (let j = -8; j <= 8; j += 2) {
+            lp.push(i, -8, j, i, 8, j);
+            lp.push(-8, j, i, 8, j, i);
+        }
+        lgeo.setAttribute('position', new THREE.Float32BufferAttribute(lp, 3));
+        this.lorentzGrid = new THREE.LineSegments(lgeo, new THREE.LineBasicMaterial({ color: 0xb366ff, transparent: true, opacity: 0.10 }));
+        this.mainGroup.add(this.lorentzGrid);
+
+        // Arrows
+        const dir = new THREE.Vector3(0, 1, 0);
+        for (let x = -2; x <= 2; x++) for (let y = -2; y <= 2; y++) for (let z = -2; z <= 2; z++) {
+            const px = x*4, py = y*4, pz = z*4;
+            if (px === 0 && py === 0 && pz === 0) continue;
+            const a = new THREE.ArrowHelper(dir, new THREE.Vector3(px, py, pz), 1.4, 0x00f0ff, 0.35, 0.18);
+            a.frustumCulled = false;
+            this.mainGroup.add(a);
+            this.vectorArrows.push({ h: a, x: px, y: py, z: pz, phase: Math.random() * Math.PI * 2 });
+        }
+
+        // Vortex
+        const vcount = 1200;
+        const vgeo = new THREE.BufferGeometry();
+        const vpos = new Float32Array(vcount * 3);
+        this.vortexData = new Array(vcount);
+        for (let i = 0; i < vcount; i++) {
+            const r = Math.random() * 6.5 + 0.5;
+            const th = Math.random() * Math.PI * 2;
+            const y = (Math.random() - 0.5) * 14;
+            vpos[i*3] = Math.cos(th) * r;
+            vpos[i*3+1] = y;
+            vpos[i*3+2] = Math.sin(th) * r;
+            this.vortexData[i] = { radius: r, theta: th, ySpeed: Math.random()*0.04+0.02, rotSpeed: Math.random()*0.08+0.03 };
+        }
+        vgeo.setAttribute('position', new THREE.BufferAttribute(vpos, 3));
+        this.vortexParticles = new THREE.Points(vgeo, new THREE.PointsMaterial({
+            size: 0.13, color: 0xe066ff, transparent: true, opacity: 0.8,
+            blending: THREE.AdditiveBlending, depthWrite: false
+        }));
+        this.vortexParticles.frustumCulled = false;
+        this.mainGroup.add(this.vortexParticles);
+
+        // Bosonic rings
+        for (let i = 0; i < 26; i++) {
+            const radius = 3.0 + i * 0.22;
+            const torus = new THREE.Mesh(
+                new THREE.TorusGeometry(radius, 0.028, 8, 96),
+                new THREE.MeshBasicMaterial({
+                    color: (i % 2 === 0) ? 0xffb366 : 0xff66cc,
+                    transparent: true, opacity: 0.0
+                })
+            );
+            const phi = (i / 26) * Math.PI * 2;
+            const theta = (i / 26) * Math.PI;
+            torus.rotation.x = theta;
+            torus.rotation.y = phi;
+            torus.rotation.z = i * 0.31;
+            this.mainGroup.add(torus);
+            this.bosonicRings.push(torus);
+        }
+
+        const outer = new THREE.Mesh(
+            new THREE.IcosahedronGeometry(14, 1),
+            new THREE.MeshBasicMaterial({ color: 0xff66cc, wireframe: true, transparent: true, opacity: 0.06 })
+        );
+        this.mainGroup.add(outer);
+
+        // PROBE + interacción
+        this.probe = new THREE.Mesh(
+            new THREE.SphereGeometry(0.35, 20, 20),
+            new THREE.MeshStandardMaterial({
+                color: 0x00ff88, emissive: 0x00ff88, emissiveIntensity: 1.5,
+                roughness: 0.2, metalness: 0.7
+            })
+        );
+        this.probe.userData.isProbe = true;
+        this.mainGroup.add(this.probe);
+        this.probeGlow = new THREE.Mesh(
+            new THREE.SphereGeometry(0.9, 16, 16),
+            new THREE.MeshBasicMaterial({
+                color: 0x00ff88, transparent: true, opacity: 0.18,
+                blending: THREE.AdditiveBlending, depthWrite: false
+            })
+        );
+        this.probe.add(this.probeGlow);
+
+        // Beacon
+        const bg = new THREE.BufferGeometry();
+        bg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+        this.beacon = new THREE.Line(bg, new THREE.LineBasicMaterial({
+            color: 0x00ff88, transparent: true, opacity: 0.4
+        }));
+        this.mainGroup.add(this.beacon);
+
+        // Trail
+        const tg = new THREE.BufferGeometry();
+        tg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(800 * 3), 3));
+        tg.setDrawRange(0, 0);
+        this.trailLine = new THREE.Line(tg, new THREE.LineBasicMaterial({
+            color: 0x00ff88, transparent: true, opacity: 0.7
+        }));
+        this.trailLine.frustumCulled = false;
+        this.mainGroup.add(this.trailLine);
+
+        // Ejes
+        this.axisGroup = new THREE.Group();
+        const L = 9;
+        const xA = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), new THREE.Vector3(0,0,0), L, 0xff3333, 0.6, 0.3);
+        const yA = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), new THREE.Vector3(0,0,0), L, 0x00ff88, 0.6, 0.3);
+        const zA = new THREE.ArrowHelper(new THREE.Vector3(0,0,1), new THREE.Vector3(0,0,0), L, 0x3399ff, 0.6, 0.3);
+        xA.frustumCulled = false; yA.frustumCulled = false; zA.frustumCulled = false;
+        this.axisGroup.add(xA, yA, zA);
+        this.axisGroup.add(this._label('X→E', L+0.8, 0, 0, '#ff3333'));
+        this.axisGroup.add(this._label('Y→UP', 0, L+0.8, 0, '#00ff88'));
+        this.axisGroup.add(this._label('Z→S', 0, 0, L+0.8, '#3399ff'));
+        this.axisGroup.add(this._label('O(0,0,0)', 0, -0.7, 0, '#ffffff'));
+        this.mainGroup.add(this.axisGroup);
+
+        // Grid
+        this.gridGroup = new THREE.Group();
+        const gridSize = 20, step = 2;
+        const matG = new THREE.LineBasicMaterial({ color: 0x003344, transparent: true, opacity: 0.6 });
+        const matM = new THREE.LineBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.35 });
+        for (let i = -gridSize; i <= gridSize; i += step) {
+            const g1 = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(-gridSize, 0, i), new THREE.Vector3(gridSize, 0, i)
+            ]);
+            this.gridGroup.add(new THREE.Line(g1, i === 0 ? matM : matG));
+            const g2 = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(i, 0, -gridSize), new THREE.Vector3(i, 0, gridSize)
+            ]);
+            this.gridGroup.add(new THREE.Line(g2, i === 0 ? matM : matG));
+        }
+        this.mainGroup.add(this.gridGroup);
+
+        // Dust
+        const pc = 400;
+        const pg = new THREE.BufferGeometry();
+        const pp = new Float32Array(pc * 3);
+        for (let i = 0; i < pc; i++) {
+            pp[i*3]   = (Math.random() - 0.5) * 40;
+            pp[i*3+1] = (Math.random() - 0.5) * 30;
+            pp[i*3+2] = (Math.random() - 0.5) * 40;
+        }
+        pg.setAttribute('position', new THREE.BufferAttribute(pp, 3));
+        this.dust = new THREE.Points(pg, new THREE.PointsMaterial({
+            size: 0.06, color: 0x66ccff, transparent: true, opacity: 0.4,
+            blending: THREE.AdditiveBlending, depthWrite: false
+        }));
+        this.dust.frustumCulled = false;
+        this.mainGroup.add(this.dust);
+    }
+
+    _label(text, x, y, z, color) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256; canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = color;
+        ctx.font = 'bold 32px monospace';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(text, 128, 32);
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.minFilter = THREE.LinearFilter;
+        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+        sprite.scale.set(2.5, 0.63, 1);
+        sprite.position.set(x, y, z);
+        return sprite;
+    }
+
+    /* ============ INTERACCIÓN ============ */
+    _setupInteraction() {
+        const el = this.renderer.domElement;
+
+        // Tooltip
+        this.tooltip = document.getElementById('hover-tooltip');
+        this.viewport = this.container;
+
+        el.addEventListener('pointerdown', (e) => {
+            this.mouseDown = true;
+            this.mouseMoved = false;
+            this.pointerDownPos = { x: e.clientX, y: e.clientY };
+            this.pointerDownTime = performance.now();
+
+            // ¿Click sobre el probe?
+            const hit = this.raycastProbe(e);
+            if (hit) {
+                this.draggingProbe = true;
+                this.viewport.classList.add('grabbing');
+                this.controls.enabled = false;
+                // Calcular offset en el plano Y=probe.y
+                const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -this.probe.position.y);
+                this.dragPlane = plane;
+                const intersect = new THREE.Vector3();
+                this.raycaster.ray.intersectPlane(plane, intersect);
+                this.dragOffset.copy(this.probe.position).sub(intersect);
+            }
+        });
+
+        el.addEventListener('pointermove', (e) => {
+            if (this.mouseDown) {
+                const dx = Math.abs(e.clientX - this.pointerDownPos.x);
+                const dy = Math.abs(e.clientY - this.pointerDownPos.y);
+                if (dx > 3 || dy > 3) this.mouseMoved = true;
+            }
+
+            // Actualizar NDC
+            const rect = el.getBoundingClientRect();
+            this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+            // Drag probe
+            if (this.draggingProbe) {
+                this.raycaster.setFromCamera(this.mouse, this.camera);
+                const intersect = new THREE.Vector3();
+                if (this.raycaster.ray.intersectPlane(this.dragPlane, intersect)) {
+                    this.probe.position.copy(intersect.add(this.dragOffset));
+                }
+            }
+
+            // Hover tooltip sobre el probe
+            if (!this.draggingProbe) {
+                const hit = this.raycastProbe(e);
+                if (hit) {
+                    this.viewport.classList.add('pointing');
+                    this.tooltip.classList.add('visible');
+                    this.tooltip.style.left = (e.clientX + 15) + 'px';
+                    this.tooltip.style.top = (e.clientY + 15) + 'px';
+                    this.tooltip.textContent = `🎯 PROBE — Click para shockwave · Drag para mover`;
+                } else {
+                    this.viewport.classList.remove('pointing');
+                    this.tooltip.classList.remove('visible');
+                }
+            }
+        });
+
+        el.addEventListener('pointerup', (e) => {
+            const wasDrag = this.mouseMoved;
+            const timeElapsed = performance.now() - this.pointerDownTime;
+
+            if (this.draggingProbe) {
+                this.draggingProbe = false;
+                this.viewport.classList.remove('grabbing');
+                this.controls.enabled = true;
+            } else if (this.mouseDown && !wasDrag && timeElapsed < 400) {
+                // Click simple → shockwave en el punto 3D
+                this.fireShockwaveAtScreen(e.clientX, e.clientY);
+            }
+
+            this.mouseDown = false;
+            this.mouseMoved = false;
+        });
+
+        el.addEventListener('pointerleave', () => {
+            this.mouseDown = false;
+            this.draggingProbe = false;
+            this.controls.enabled = true;
+            this.viewport.classList.remove('pointing', 'grabbing');
+            this.tooltip.classList.remove('visible');
+        });
+
+        // Doble click → focus al probe
+        el.addEventListener('dblclick', (e) => {
+            const hit = this.raycastProbe(e);
+            if (hit) {
+                this.focusProbe = !this.focusProbe;
+                if (this.onAction) this.onAction('focusOnProbe', this.focusProbe);
+            }
+        });
+    }
+
+    raycastProbe(e) {
+        const rect = this.renderer.domElement.getBoundingClientRect();
+        const mx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        const my = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        this.raycaster.setFromCamera({ x: mx, y: my }, this.camera);
+        const hits = this.raycaster.intersectObject(this.probe, true);
+        return hits.length > 0 ? hits[0] : null;
+    }
+
+    /** Click en pantalla → dispara shockwave + burst + bolt desde el origen hacia el punto */
+    fireShockwaveAtScreen(sx, sy) {
+        const rect = this.renderer.domElement.getBoundingClientRect();
+        const mx = ((sx - rect.left) / rect.width) * 2 - 1;
+        const my = -((sy - rect.top) / rect.height) * 2 + 1;
+        this.raycaster.setFromCamera({ x: mx, y: my }, this.camera);
+
+        // Plano a través del probe, perpendicular a la cámara
+        const camDir = new THREE.Vector3();
+        this.camera.getWorldDirection(camDir);
+        const plane = new THREE.Plane();
+        plane.setFromNormalAndCoplanarPoint(camDir.negate(), this.probe.position);
+        const intersect = new THREE.Vector3();
+        if (!this.raycaster.ray.intersectPlane(plane, intersect)) {
+            // fallback: plano Y=0
+            plane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0,1,0), new THREE.Vector3(0,0,0));
+            this.raycaster.ray.intersectPlane(plane, intersect);
+        }
+
+        const point = intersect.clone();
+        // Aplicar efecto "explosivo" local
+        this.actions.impact(point, 0xffff66);
+        this.actions.shockwave(point, 0xff0055, 25, 2.5);
+        this.actions.shake(0.6);
+        // Rayo desde el origen hasta el punto de click
+        this.actions.bolt(new THREE.Vector3(0,0,0), point, 0x00e6ff, 0.8);
+        // Inyectar energía al kernel
+        this.kernel.energyBoost += 1.5;
+
+        if (this.onAction) this.onAction('click-shockwave', point);
+    }
+
+    /* ============ ACCIONES PROGRAMADAS ============ */
+    actionBigBang() {
+        const center = new THREE.Vector3(0,0,0);
+        // Triple shockwave
+        this.actions.shockwave(center, 0xff0055, 40, 3.5, 0.15);
+        setTimeout(() => this.actions.shockwave(center, 0xff9900, 32, 3.0, 0.12), 150);
+        setTimeout(() => this.actions.shockwave(center, 0xffff66, 25, 2.5, 0.10), 300);
+        // Gran burst
+        this.actions.burst(center, 500, 0xff0055, 15, 3);
+        this.actions.burst(center, 300, 0xff9900, 10, 2.5);
+        // Screen flash
+        this._flash(0.4);
+        this.actions.shake(1.0);
+        // Boost kernel
+        this.kernel.energyBoost = 3.0;
+        this.kernel.universalMode = true;
+        // Excitar bosones
+        this.bosonic.exciteAll(1.0);
+    }
+
+    actionVortex() {
+        // Anillos giratorios alrededor del origen
+        for (let i = 0; i < 6; i++) {
+            setTimeout(() => {
+                const angle = (i / 6) * Math.PI * 2;
+                const origin = new THREE.Vector3(
+                    Math.cos(angle) * 8,
+                    (Math.random() - 0.5) * 4,
+                    Math.sin(angle) * 8
+                );
+                this.actions.pulseRing(origin, 0xe066ff, 18, 2.0);
+                this.actions.burst(origin, 120, 0xe066ff, 5, 1.8);
+            }, i * 100);
+        }
+        // Aplicar rotación dramática
+        this.mainGroup.rotation.z += 0.5;
+        this.kernel.energyBoost = 2.0;
+        this.actions.shake(0.5);
+    }
+
+    actionPulse() {
+        // Rayos desde el centro a los 26 puntos dimensionales
+        const origin = new THREE.Vector3(0,0,0);
+        for (let i = 0; i < 26; i++) {
+            setTimeout(() => {
+                this.actions.bolt(origin, this.dimPositions[i].clone(), 0x00e6ff, 1.0);
+                this.actions.pulseRing(this.dimPositions[i].clone(), 0x00e6ff, 8, 1.2);
+            }, i * 40);
+        }
+        this.actions.shockwave(origin, 0x00e6ff, 30, 2.5);
+        this.kernel.energyBoost = 2.5;
+        // Pulsar fock
+        for (let i = 0; i < 26; i++) this.kernel.fockN[i] = 1.0;
+    }
+
+    actionShock() {
+        // Múltiples anillos concéntricos
+        for (let i = 0; i < 5; i++) {
+            setTimeout(() => {
+                this.actions.shockwave(new THREE.Vector3(0,0,0), 0xffff66, 35, 3.5, 0.08);
+            }, i * 200);
+        }
+        this.actions.shake(0.8);
+        this._flash(0.2);
+        this.kernel.energyBoost = 2.0;
+    }
+
+    actionImpact() {
+        // Impacto en el probe
+        const p = this.probe.position.clone();
+        this.actions.impact(p, 0xff5555);
+        this.actions.bolt(new THREE.Vector3(0,0,0), p, 0xff5555, 1.0);
+        this.actions.burst(p, 300, 0xff5555, 12, 2.0);
+        this.actions.shake(0.9);
+        this._flash(0.3);
+        this.kernel.energyBoost = 2.5;
+        // Reducir la energía Fock bruscamente (impacto)
+        for (let i = 0; i < 26; i++) this.kernel.fockN[i] *= 0.3;
+    }
+
+    actionFocus() {
+        // Alternar cámara siguiento al probe
+        this.focusProbe = !this.focusProbe;
+        if (this.focusProbe) {
+            // Flash de confirmación
+            this.actions.pulseRing(this.probe.position.clone(), 0x00ff88, 6, 1.0);
+        }
+    }
+
+    actionOverdrive() {
+        this.kernel.overdriveActive = !this.kernel.overdriveActive;
+        if (this.kernel.overdriveActive) {
+            this.kernel.energyBoost = 5.0;
+            // Explosión masiva continua
+            this.actions.burst(new THREE.Vector3(0,0,0), 600, 0xff00ff, 18, 3);
+            this.actions.shockwave(new THREE.Vector3(0,0,0), 0xff00ff, 45, 4);
+            this._flash(0.5);
+            this.actions.shake(1.2);
+            for (let i = 0; i < 26; i++) this.kernel.fockN[i] = 1.0;
+            this.bosonic.exciteAll(1.0);
+        } else {
+            this.kernel.energyBoost = 0;
+        }
+        return this.kernel.overdriveActive;
+    }
+
+    _flash(opacity) {
+        const el = document.getElementById('flash-overlay');
+        if (!el) return;
+        el.style.opacity = opacity;
+        setTimeout(() => { el.style.opacity = 0; }, 80);
+    }
+
+    updateProbe(t) {
+        // Si NO estamos arrastrando, el probe sigue su órbita automática
+        if (this.draggingProbe) return this.probe.position;
+
+        const K = this.kernel;
+        const boost = 1 + K.energyBoost * 0.3;
+        const amp = (7 + 1.5 * (K.gamma_avg - 1)) * boost;
+        const sp = 0.35 * (1 + K.energyBoost * 0.2);
+        const x = amp * Math.sin(t * sp) * Math.cos(t * sp * 0.3);
+        const y = 4 * Math.sin(t * sp * 0.7) + 1.5 * K.psi_norm * 0.2;
+        const z = amp * Math.cos(t * sp * 0.6) * Math.sin(t * sp * 0.4);
+
+        // Suavemente interpolar hacia la posición
+        const target = new THREE.Vector3(x, y, z);
+        this.probe.position.lerp(target, 0.08);
+
+        const s = 1 + 0.3 * Math.sin(t * 4) * K.Phi_U + K.energyBoost * 0.15;
+        this.probe.scale.setScalar(s);
+        this.probeGlow.scale.setScalar(1 + 0.4 * Math.sin(t * 5) + K.energyBoost * 0.3);
+        this.probeGlow.material.opacity = 0.15 + 0.15 * Math.abs(Math.sin(t * 2)) + K.energyBoost * 0.1;
+        return this.probe.position;
+    }
+
+    updateBeacon(pos) {
+        const attr = this.beacon.geometry.attributes.position;
+        attr.setXYZ(0, 0, 0, 0);
+        attr.setXYZ(1, pos.x, pos.y, pos.z);
+        attr.needsUpdate = true;
+    }
+
+    updateTrail(trail) {
+        if (!this.trailEnabled) { this.trailLine.geometry.setDrawRange(0, 0); return; }
+        const attr = this.trailLine.geometry.attributes.position;
+        const n = Math.min(trail.length, 800);
+        for (let i = 0; i < n; i++) {
+            const p = trail[i];
+            attr.setXYZ(i, p.x, p.y, p.z);
+        }
+        attr.needsUpdate = true;
+        this.trailLine.geometry.setDrawRange(0, n);
+    }
+
+    updateFields(t, dt) {
+        const K = this.kernel;
+        const boost = 1 + K.energyBoost * 0.5;
+
+        // Einstein
+        {
+            const pos = this.einsteinGeo.attributes.position.array;
+            const base = this.einsteinGeoPositions;
+            for (let i = 0; i < pos.length; i += 3) {
+                const x = base[i], y = base[i+1], z = base[i+2];
+                const r = Math.sqrt(x*x + y*y + z*z) + 0.001;
+                const pert = (K.R_scalar * 0.15 * Math.sin(t * 0.5 + r * 3) + 0.05 * Math.sin(t * 1.2 + x)) * boost;
+                pos[i] = x * (1 + pert); pos[i+1] = y * (1 + pert); pos[i+2] = z * (1 + pert);
+            }
+            this.einsteinGeo.attributes.position.needsUpdate = true;
+            this.einsteinMesh.rotation.y = t * 0.2;
+            this.einsteinMesh.rotation.x = t * 0.1;
+            this.einsteinWire.rotation.y = -t * 0.15;
+            this.einsteinWire.scale.setScalar(1 + K.energyBoost * 0.15);
+        }
+
+        // Newton
+        for (const ring of this.newtonWells) {
+            const idx = ring.userData.index;
+            const phi = Math.abs(K.Phi_newton / 9.8) * (1 + K.energyBoost);
+            ring.scale.setScalar(1 + phi * 0.05 * (1 + 0.3 * Math.sin(t * 0.7 + idx)));
+            ring.material.opacity = Math.min(0.9, phi * 0.4);
+            ring.rotation.z = t * 0.08 * (idx % 2 === 0 ? 1 : -1);
+        }
+
+        // Dirac
+        for (let i = 0; i < this.diracSpinors.length; i++) {
+            const s = this.diracSpinors[i];
+            const sp = K.spinors[i];
+            const amp = Math.sqrt(sp.re * sp.re + sp.im * sp.im) * boost;
+            s.material.opacity = Math.min(1, amp * 0.9);
+            s.rotation.y = sp.phase;
+            s.rotation.x = sp.phase * 0.7;
+            s.position.copy(this.dimPositions[i]).multiplyScalar(1 + 0.15 * Math.sin(t * 1.4 + i * 0.5) + K.energyBoost * 0.1);
+        }
+
+        // Fock
+        {
+            const pos = this.fockCloud.geometry.attributes.position.array;
+            for (let i = 0; i < this.fockData.length; i++) {
+                const d = this.fockData[i];
+                const n = K.fockN[i % 26];
+                const scale = 0.9 + 0.35 * n * boost;
+                const theta = d.theta + t * 0.15 * (1 + i * 0.001) * boost;
+                const phi = d.phi + Math.sin(t * 0.5 + d.phase) * 0.1;
+                const r = d.baseR * scale;
+                pos[i*3]   = Math.sin(phi) * Math.cos(theta) * r;
+                pos[i*3+1] = Math.cos(phi) * r * 0.8;
+                pos[i*3+2] = Math.sin(phi) * Math.sin(theta) * r;
+            }
+            this.fockCloud.geometry.attributes.position.needsUpdate = true;
+            this.fockCloud.material.size = 0.11 * (1 + K.energyBoost * 0.5);
+        }
+
+        // Cuerdas
+        for (const line of this.stringLines) {
+            const u = line.userData;
+            const pos = line.geometry.attributes.position.array;
+            const seg = u.segments;
+            for (let i = 0; i <= seg; i++) {
+                const s = i / seg;
+                const angle = s * Math.PI * 2;
+                const vib = Math.sin(t * 3.5 * boost + u.phase + s * 8) * 0.55 * K.T_string * 1e3 * boost;
+                pos[i*3]   = Math.cos(angle) * u.radius + Math.sin(t * 1.5 + u.phase) * 0.4;
+                pos[i*3+1] = Math.sin(angle * 2 + t * 2) * 1.2 + vib;
+                pos[i*3+2] = Math.sin(angle) * u.radius * Math.cos(u.tiltZ);
+            }
+            line.geometry.attributes.position.needsUpdate = true;
+            line.rotation.x = u.tiltX;
+            line.rotation.z = u.tiltZ + t * 0.02 * boost;
+        }
+
+        // Lorentz
+        if (this.lorentzGrid) {
+            this.lorentzGrid.scale.setScalar((1 + (K.gamma_avg - 1) * 0.15) * boost);
+            this.lorentzGrid.rotation.y = t * 0.03;
+        }
+
+        // Arrows
+        const speed = (K.universalMode ? 1.5 : 1.0) * boost;
+        const tmp = new THREE.Vector3();
+        for (const a of this.vectorArrows) {
+            const x = a.x, y = a.y, z = a.z;
+            const nlf = 1.0 + 0.3 * Math.sin(t * 1.5 * boost + a.phase);
+            const vx = (-z * Math.cos(t*0.5 + a.phase) - y * Math.sin(t*0.3)) * nlf;
+            const vy = ( x * Math.sin(t*0.4) + z * Math.cos(t*0.5))           * nlf;
+            const vz = ( x * Math.cos(t*0.5 + a.phase) - y * Math.sin(t*0.4)) * nlf;
+            if (!Number.isFinite(vx) || !Number.isFinite(vy) || !Number.isFinite(vz)) continue;
+            tmp.set(vx, vy, vz);
+            const mag = tmp.length();
+            if (mag < 1e-9) continue;
+            tmp.multiplyScalar(1 / mag);
+            const len = Math.min(3, Math.max(0.5, mag * 0.35)) * speed;
+            a.h.setDirection(tmp);
+            a.h.setLength(len, len * 0.3, len * 0.15);
+        }
+
+        // Vortex
+        {
+            const pos = this.vortexParticles.geometry.attributes.position.array;
+            for (let i = 0; i < this.vortexData.length; i++) {
+                const d = this.vortexData[i];
+                d.theta += d.rotSpeed * 0.5 * speed;
+                d.y += d.ySpeed * 0.2 * speed;
+                if (!Number.isFinite(d.y) || d.y > 7) d.y = -7;
+                const px = Math.cos(d.theta) * d.radius;
+                const pz = Math.sin(d.theta) * d.radius;
+                pos[i*3]   = Number.isFinite(px) ? px : 0;
+                pos[i*3+1] = d.y;
+                pos[i*3+2] = Number.isFinite(pz) ? pz : 0;
+            }
+            this.vortexParticles.geometry.attributes.position.needsUpdate = true;
+        }
+
+        // Bosonic rings
+        for (let i = 0; i < this.bosonicRings.length; i++) {
+            const ring = this.bosonicRings[i];
+            const amp = Math.abs(this.bosonic.channels[i].amplitude);
+            ring.material.opacity = Math.min(0.85, amp * 0.9 * boost);
+            const s = 0.4 + amp * 0.85 * boost;
+            ring.scale.set(s, s, s);
+            ring.rotation.z += 0.002 * (1 + i * 0.05) * boost;
+        }
+    }
+
+    animate() {
+        requestAnimationFrame(this._boundAnimate);
+        const dt = Math.min(this.clock.getDelta(), 0.1);
+        this.time += dt * 1.5;
+
+        this.kernel.step(dt, this.time);
+        this.bosonic.update(dt, this.kernel);
+
+        const probePos = this.updateProbe(this.time);
+        this.updateBeacon(probePos);
+        this.updateFields(this.time, dt);
+
+        // Action system
+        const shake = this.actions.update(dt, this.time);
+
+        // Focus camera on probe
+        if (this.focusProbe) {
+            const target = this.probe.position.clone();
+            const camOffset = new THREE.Vector3(0, 4, 12);
+            const desired = target.clone().add(camOffset);
+            this.camera.position.lerp(desired, 0.05);
+            this.controls.target.lerp(target, 0.1);
+        }
+
+        // Screen shake
+        if (shake > 0.01) {
+            this.camera.position.x += (Math.random() - 0.5) * shake * 0.5;
+            this.camera.position.y += (Math.random() - 0.5) * shake * 0.5;
+            this.camera.position.z += (Math.random() - 0.5) * shake * 0.5;
+        }
+
+        // Overdrive: inyección continua
+        if (this.kernel.overdriveActive) {
+            this.kernel.energyBoost = Math.min(5, this.kernel.energyBoost + dt * 0.3);
+            if (Math.random() < 0.15) {
+                this.actions.burst(this.probe.position.clone(), 100, 0xff00ff, 8, 1.5);
+            }
+        }
+
+        // Rotación global del mainGroup
+        this.mainGroup.rotation.y += dt * (0.02 + this.kernel.energyBoost * 0.05);
+
+        this.controls.update();
+        this.renderer.render(this.scene, this.camera);
+
+        if (this.onTick) this.onTick(this.time, dt, probePos, this.actions);
+    }
+
+    resize() {
+        const w = window.innerWidth, h = window.innerHeight;
+        this.camera.aspect = w / h;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(w, h);
+    }
+
+    setTrailEnabled(v) { this.trailEnabled = v; }
+    setAxesEnabled(v) { this.axesEnabled = v; if (this.axisGroup) this.axisGroup.visible = v; }
+    setGridEnabled(v) { this.metricGridEnabled = v; if (this.gridGroup) this.gridGroup.visible = v; }
+}
+
+/* ============================================================
+   10. APP
+   ============================================================ */
+class App {
+    constructor() {
+        this.t0 = performance.now();
+        this.matrix = new MatrixEngine();
+        this.kernel = new UniversalKernel();
+        this.wave = new WaveVision('wave-canvas');
+        this.spec = new Spectrometer('spectrum-canvas');
+        this.gps = new GeoLocator();
+        this.tracker = new PositionTracker();
+        this.bosonic = new BosonicChannels();
+        this.bosonic.bindDOM('bos-grid');
+
+        this.dom = {};
+        const ids = [
+            'console-log','sidebar','toggle-icon','toggle-text','banner-text',
+            'gps-status','gps-lat','gps-lon','gps-alt','gps-src','scale-val',
+            'pos-x','pos-y','pos-z','pos-dist','pos-speed','speed-bar',
+            'real-lat','real-lon','real-alt','real-az','real-el',
+            't4d-val','t3d-val','tlog-val','frame-count',
+            'spec-peak','spec-dom','spec-energy','spec-harmonics','spec-snr','spec-band',
+            'wave-fps','wave-freq-dom','wave-amp','wave-rms','wave-phase','wave-peak',
+            'wave-vision-panel','wave-toggle','bos-active','bos-dom','bos-parity','bos-sum',
+            'bosonic-panel','bos-toggle','rt-time','rt-date','rt-zone',
+            'rt-time-ov','rt-date-ov','rt-zone-ov','rt-coords-ov',
+            'po-fps','po-x','po-y','po-z','po-lat','po-lon','po-alt','po-dist','po-az','po-el','po-speed',
+            'mat-title','mat-dim','mat-content','matrix-inspector',
+            'seq-overlay','seq-progress','seq-progress-fill','seq-phase','seq-dim',
+            'seq-size','seq-sym','seq-rank2','seq-frobenius','seq-error','seq-run-btn',
+            'trail-btn','axes-btn','grid-btn',
+            'up-einstein','up-newton','up-dirac','up-fock','up-string','up-lorentz','up-universal',
+            'act-attacks','act-shocks','act-bursts','act-energy','act-probe-state','act-last',
+            'action-counters'
+        ];
+        ids.forEach(id => {
+            const key = id.replace(/-([a-z])/g, (m, c) => c.toUpperCase());
+            this.dom[key] = document.getElementById(id);
+        });
+
+        document.getElementById('floating-toggle-btn').addEventListener('click', () => this.toggleSidebar());
+
+        this.stage = new Stage3D('viewport-container', this.kernel, this.bosonic, {
+            onTick: (t, dt, probePos, actions) => this.onFrame(t, dt, probePos, actions),
+            onAction: (name, data) => this.onStageAction(name, data)
+        });
+
+        this.gps.onUpdate = g => this.onGPS(g);
+        this.gps.locate();
+
+        this.updateRealClock();
+        setInterval(() => this.updateRealClock(), 200);
+
+        this.currentDim = 26;
+        this._lastSpecUpdate = 0;
+        this._lastLog = 0;
+        this._lastMatrixRender = -1;
+        this._fpsCount = 0; this._fpsTimer = 0; this._fps = 60;
+        this._seqRunning = false;
+        this._frameCount = 0;
+        this._forwardStore = {};
+
+        this.log("══════════════════════════════════════════════════");
+        this.log("🌌 UNIVERSAL PHYSICS · ACTION VISIBLE TOTAL");
+        this.log("💥 7 acciones · Click en escena · Drag probe");
+        this.log("📍 Solicitando GPS…");
+        this.log("══════════════════════════════════════════════════");
+
+        this.bosonic.exciteAll(0.7);
+        this.renderMatrix();
+
+        window.addEventListener('keydown', e => {
+            if (e.key === 'Escape') this.toggleSidebar();
+            if (e.key === 'w' || e.key === 'W') this.toggleWaveVision();
+            if (e.key === 'b' || e.key === 'B') this.toggleBosonicPanel();
+            if (e.key === 'u' || e.key === 'U') this.toggleUniversal();
+            if (e.key === '1') this.action('bang');
+            if (e.key === '2') this.action('vortex');
+            if (e.key === '3') this.action('pulse');
+            if (e.key === '4') this.action('shock');
+            if (e.key === '5') this.action('impact');
+            if (e.key === '6') this.action('focus');
+            if (e.key === '0') this.action('overdrive');
+        });
+    }
+
+    sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    /* ============ ACCIÓN ============ */
+    action(name) {
+        const A = this.stage.actions;
+        let label = '';
+        let chipColor = '#ff0055';
+
+        switch (name) {
+            case 'bang':
+                this.stage.actionBigBang();
+                label = '💥 BIG BANG';
+                chipColor = '#ff0055';
+                this.log('<span class="act">💥 BIG BANG</span> — expansión total del manifold');
+                break;
+            case 'vortex':
+                this.stage.actionVortex();
+                label = '🌀 VÓRTICE';
+                chipColor = '#e066ff';
+                this.log('<span class="act">🌀 VÓRTICE</span> — 6 anillos pulsantes');
+                break;
+            case 'pulse':
+                this.stage.actionPulse();
+                label = '⚡ PULSO EM';
+                chipColor = '#00e6ff';
+                this.log('<span class="act">⚡ PULSO EM</span> — 26 rayos a dimensiones');
+                break;
+            case 'shock':
+                this.stage.actionShock();
+                label = '🌊 SHOCK';
+                chipColor = '#ffff66';
+                this.log('<span class="act">🌊 SHOCK</span> — 5 ondas concéntricas');
+                break;
+            case 'impact':
+                this.stage.actionImpact();
+                label = '☄ IMPACTO';
+                chipColor = '#ff5555';
+                this.log('<span class="act">☄ IMPACTO</span> — colisión sobre el probe');
+                break;
+            case 'focus':
+                this.stage.actionFocus();
+                label = '🎯 FOCO';
+                chipColor = '#00ff88';
+                this.log(`<span class="act">🎯 FOCO</span> — cámara ${this.stage.focusProbe ? 'siguiendo' : 'liberada'}`);
+                break;
+            case 'overdrive':
+                const on = this.stage.actionOverdrive();
+                label = on ? '🔥 OVERDRIVE ON' : '💤 OVERDRIVE OFF';
+                chipColor = '#ff00ff';
+                this.log(`<span class="act">🔥 OVERDRIVE</span> — ${on ? 'MODO MÁXIMO' : 'desactivado'}`);
+                break;
+        }
+
+        this.dom.actLast.textContent = label;
+        this.dom.bannerText.textContent = label;
+        this.dom.bannerText.style.color = chipColor;
+
+        // Chip temporal
+        const chip = document.createElement('div');
+        chip.className = 'action-chip';
+        chip.style.borderColor = chipColor;
+        chip.style.color = chipColor;
+        chip.textContent = label;
+        this.dom.actionCounters.appendChild(chip);
+        setTimeout(() => {
+            chip.style.transition = 'opacity 0.5s';
+            chip.style.opacity = '0';
+            setTimeout(() => chip.remove(), 500);
+        }, 2500);
+    }
+
+    onStageAction(name, data) {
+        if (name === 'click-shockwave') {
+            this.log(`<span class="act">🖱 SHOCKWAVE</span> — click en (${data.x.toFixed(1)}, ${data.y.toFixed(1)}, ${data.z.toFixed(1)})`);
+            this.dom.actLast.textContent = '🖱 CLICK SHOCK';
+            this.dom.bannerText.textContent = '🖱 CLICK SHOCKWAVE';
+            const chip = document.createElement('div');
+            chip.className = 'action-chip';
+            chip.style.borderColor = '#ff0055';
+            chip.style.color = '#ff0055';
+            chip.textContent = '🖱 CLICK';
+            this.dom.actionCounters.appendChild(chip);
+            setTimeout(() => chip.remove(), 2000);
+        }
+        if (name === 'focusOnProbe') {
+            this.log(`🎯 Focus ${data ? 'ON' : 'OFF'}`);
+        }
+    }
+
+    onGPS(g) {
+        this.tracker.setOrigin(g.lat, g.lon, g.alt);
+        const ok = g.status === 'ok';
+        this.dom.gpsStatus.textContent = ok ? '✓ ACTIVO' : '⚠ FALLBACK';
+        this.dom.gpsStatus.className = ok ? 'hl-green' : 'hl-orange';
+        this.dom.gpsLat.textContent = `${g.lat.toFixed(6)}°`;
+        this.dom.gpsLon.textContent = `${g.lon.toFixed(6)}°`;
+        this.dom.gpsAlt.textContent = `${(g.alt||0).toFixed(1)} m`;
+        this.dom.gpsSrc.textContent = g.source;
+        if (this.dom.rtCoordsOv) this.dom.rtCoordsOv.textContent = `📡 ${g.lat.toFixed(4)}°, ${g.lon.toFixed(4)}° · ${g.source}`;
+        this.log(`📍 GPS: ${g.lat.toFixed(6)}, ${g.lon.toFixed(6)} · ${g.source}`);
+    }
+
+    updateRealClock() {
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2,'0');
+        const mm = String(now.getMinutes()).padStart(2,'0');
+        const ss = String(now.getSeconds()).padStart(2,'0');
+        const ms = String(now.getMilliseconds()).padStart(3,'0');
+        if (this.dom.rtTime) this.dom.rtTime.textContent = `${hh}:${mm}:${ss}`;
+        if (this.dom.rtTimeOv) this.dom.rtTimeOv.textContent = `${hh}:${mm}:${ss}.${ms}`;
+        const dias = ['dom','lun','mar','mié','jue','vie','sáb'];
+        const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+        const ds = `${dias[now.getDay()]} ${String(now.getDate()).padStart(2,'0')} ${meses[now.getMonth()]} ${now.getFullYear()}`;
+        if (this.dom.rtDate) this.dom.rtDate.textContent = ds;
+        if (this.dom.rtDateOv) this.dom.rtDateOv.textContent = ds;
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+        const off = -now.getTimezoneOffset();
+        const s = off >= 0 ? '+' : '-';
+        const oh = String(Math.floor(Math.abs(off)/60)).padStart(2,'0');
+        const om = String(Math.abs(off)%60).padStart(2,'0');
+        const tzStr = `${tz} (UTC${s}${oh}:${om})`;
+        if (this.dom.rtZone) this.dom.rtZone.textContent = tzStr;
+        if (this.dom.rtZoneOv) this.dom.rtZoneOv.textContent = `ZONA: ${tzStr}`;
+    }
+
+    onFrame(t, dt, probePos, actions) {
+        const K = this.kernel;
+        const now = performance.now();
+        const t4d = (now - this.t0) / 1000;
+        this._frameCount++;
+
+        // Tracker
+        const wp = this.stage.probe.getWorldPosition(new THREE.Vector3());
+        this.tracker.update(wp, t, dt);
+        this.stage.updateTrail(this.tracker.trail);
+
+        // Tiempos
+        this.dom.t4dVal.textContent = `${t4d.toFixed(3)} s`;
+        this.dom.t3dVal.textContent = `${t.toFixed(3)} s`;
+        this.dom.tlogVal.textContent = `+${t4d.toFixed(3)} s`;
+        this.dom.frameCount.textContent = this._frameCount;
+
+        // Posición
+        this.dom.posX.textContent = this.tracker.local.x.toFixed(3);
+        this.dom.posY.textContent = this.tracker.local.y.toFixed(3);
+        this.dom.posZ.textContent = this.tracker.local.z.toFixed(3);
+        this.dom.posDist.textContent = `${this.tracker.distance.toFixed(2)} m`;
+        this.dom.posSpeed.textContent = `${this.tracker.speed.toFixed(2)} m/s · ${(this.tracker.speed*3.6).toFixed(2)} km/h`;
+        this.dom.realLat.textContent = `${this.tracker.geo.lat.toFixed(7)}°`;
+        this.dom.realLon.textContent = `${this.tracker.geo.lon.toFixed(7)}°`;
+        this.dom.realAlt.textContent = `${this.tracker.geo.alt.toFixed(1)} m`;
+        this.dom.realAz.textContent = `${this.tracker.azimuth.toFixed(2)}° ${this._bearing(this.tracker.azimuth)}`;
+        this.dom.realEl.textContent = `${this.tracker.elevation.toFixed(2)}°`;
+        this.dom.speedBar.style.width = `${Math.min(100, this.tracker.speed * 0.5)}%`;
+
+        // Overlay
+        this.dom.poX.textContent = `${this.tracker.local.x.toFixed(3)} u`;
+        this.dom.poY.textContent = `${this.tracker.local.y.toFixed(3)} u`;
+        this.dom.poZ.textContent = `${this.tracker.local.z.toFixed(3)} u`;
+        this.dom.poLat.textContent = `${this.tracker.geo.lat.toFixed(7)}°`;
+        this.dom.poLon.textContent = `${this.tracker.geo.lon.toFixed(7)}°`;
+        this.dom.poAlt.textContent = `${this.tracker.geo.alt.toFixed(2)} m`;
+        this.dom.poDist.textContent = `${this.tracker.distance.toFixed(2)} m`;
+        this.dom.poAz.textContent = `${this.tracker.azimuth.toFixed(1)}° ${this._bearing(this.tracker.azimuth)}`;
+        this.dom.poEl.textContent = `${this.tracker.elevation.toFixed(1)}°`;
+        this.dom.poSpeed.textContent = `${this.tracker.speed.toFixed(2)} m/s · ${(this.tracker.speed*3.6).toFixed(1)} km/h`;
+
+        // FPS
+        this._fpsCount++; this._fpsTimer += dt;
+        if (this._fpsTimer >= 0.5) {
+            this._fps = Math.round(this._fpsCount / this._fpsTimer);
+            this._fpsCount = 0; this._fpsTimer = 0;
+            this.dom.poFps.textContent = `${this._fps} fps`;
+        }
+
+        // ACTION HUD
+        if (actions) {
+            this.dom.actAttacks.textContent = String(actions.attackCount);
+            this.dom.actShocks.textContent = String(actions.shockwaves.length);
+            this.dom.actBursts.textContent = String(actions.bursts.length);
+            this.dom.actEnergy.textContent = `${(1 + K.energyBoost).toFixed(1)}×`;
+            this.dom.actProbeState.textContent = this.stage.focusProbe ? 'FOCUS LOCK' : 'AUTO-ORBIT';
+        }
+
+        // Señal
+        const signal = K.sampleSignal(t) + this.bosonic.sample(t) * 0.35;
+
+        // Wave
+        this.wave.pushSample(signal);
+        this.wave.analyze(dt);
+        if (this.wave.enabled) {
+            this.wave.draw();
+            this.dom.waveFps.textContent = `${this.wave.fps} fps`;
+            this.dom.waveFreqDom.textContent = `${this.wave.dominantFreq.toFixed(2)} Hz`;
+            this.dom.waveAmp.textContent = this.wave.peakAmplitude.toFixed(4);
+            this.dom.waveRms.textContent = this.wave.rms.toFixed(5);
+            this.dom.wavePhase.textContent = `${this.wave.instantPhase.toFixed(3)} rad`;
+            this.dom.wavePeak.textContent = `f₀=${this.wave.dominantFreq.toFixed(1)}Hz`;
+        }
+
+        // Espectrómetro
+        this.spec.pushSample(signal);
+        this._lastSpecUpdate += dt;
+        if (this._lastSpecUpdate >= 0.066) {
+            this._lastSpecUpdate = 0;
+            this.spec.compute();
+            this.spec.draw();
+            this.dom.specPeak.textContent = `${this.spec.dominantFreq.toFixed(2)} Hz`;
+            this.dom.specDom.textContent = `${this.spec.dominantFreq.toFixed(3)} Hz`;
+            this.dom.specEnergy.textContent = this.spec.totalEnergy.toFixed(5);
+            this.dom.specHarmonics.textContent = String(this.spec.harmonics);
+            this.dom.specSnr.textContent = `${this.spec.snr.toFixed(1)} dB`;
+            this.dom.specBand.textContent = `Δf = ${(this.spec.SAMPLE_RATE/this.spec.FFT_SIZE).toFixed(3)} Hz`;
+        }
+
+        // HUD universal
+        this.dom.upEinstein.textContent = K.R_scalar.toFixed(3);
+        this.dom.upNewton.textContent = K.Phi_newton.toFixed(2);
+        this.dom.upDirac.textContent = K.psi_norm.toFixed(3);
+        this.dom.upFock.textContent = K.N_avg.toFixed(3);
+        this.dom.upString.textContent = (K.T_string * 1e3).toFixed(3);
+        this.dom.upLorentz.textContent = K.gamma_avg.toFixed(3);
+        this.dom.upUniversal.textContent = K.Phi_U.toFixed(3);
+
+        // Bosones
+        let active = 0;
+        for (let i = 0; i < this.bosonic.count; i++)
+            if (this.bosonic.channels[i].amplitude > 0.05) active++;
+        this.dom.bosActive.textContent = `${active} / 26`;
+        this.dom.bosDom.textContent = `#${this.bosonic.dominantIndex} · ${this.bosonic.channels[this.bosonic.dominantIndex].freq.toFixed(1)} Hz`;
+        this.dom.bosParity.textContent = `${this.bosonic.parityBalance >= 0 ? 'BOSÓNICO' : 'ANTI-BOSÓNICO'} (${this.bosonic.parityBalance.toFixed(3)})`;
+        this.dom.bosSum.textContent = `ΣΩ = ${this.bosonic.sumOmega.toFixed(2)}`;
+
+        // Matriz
+        if (!this._seqRunning && t - this._lastMatrixRender > 0.25) {
+            this._lastMatrixRender = t;
+            this.renderMatrix();
+        }
+
+        // Log
+        if (t4d - this._lastLog > 10) {
+            this._lastLog = t4d;
+            this.log(`⏱ t=${t4d.toFixed(1)}s · Lat ${this.tracker.geo.lat.toFixed(6)} · f₀=${this.spec.dominantFreq.toFixed(2)}Hz · ataques=${actions ? actions.attackCount : 0}`);
+        }
+    }
+
+    _bearing(az) {
+        const d = ['N','NE','E','SE','S','SO','O','NO'];
+        return d[Math.round(az / 45) % 8];
+    }
+
+    log(msg) {
+        const el = this.dom.consoleLog;
+        if (!el) return;
+        const n = new Date();
+        const ts = `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}.${String(n.getMilliseconds()).padStart(3,'0')}`;
+        const div = document.createElement('div');
+        div.innerHTML = `<span class="ts">[${ts}]</span> ${msg}`;
+        el.appendChild(div);
+        while (el.childElementCount > 200) el.removeChild(el.firstElementChild);
+        el.scrollTop = el.scrollHeight;
+    }
+
+    toggleSidebar() {
+        const sb = this.dom.sidebar;
+        sb.classList.toggle('minimized');
+        const m = sb.classList.contains('minimized');
+        this.dom.toggleIcon.textContent = m ? '▸' : '☰';
+        this.dom.toggleText.textContent = m ? 'Abrir' : 'Menú';
+    }
+
+    toggleWaveVision() {
+        this.wave.enabled = !this.wave.enabled;
+        this.dom.waveVisionPanel.classList.toggle('hidden', !this.wave.enabled);
+        this.dom.waveToggle.classList.toggle('active', this.wave.enabled);
+    }
+
+    toggleBosonicPanel() {
+        const h = this.dom.bosonicPanel.classList.toggle('hidden');
+        this.dom.bosToggle.classList.toggle('active', !h);
+    }
+
+    toggleUniversal() {
+        this.kernel.universalMode = !this.kernel.universalMode;
+        const on = this.kernel.universalMode;
+        this.log(on ? "🌌 Universal ON" : "🌌 Universal OFF");
+        this.dom.bannerText.textContent = on ? "UNIVERSAL MODE ACTIVO" : "MODO PULSOS";
+    }
+
+    pulse(name) {
+        if (this.kernel.universalMode) this.kernel.universalMode = false;
+        this.kernel.pulses[name] = 1.0;
+        const names = { einstein:'🌀 EINSTEIN', newton:'🍎 NEWTON', dirac:'⚛ DIRAC', fock:'🎼 FOCK', string:'🧵 CUERDAS', lorentz:'⏱ LORENTZ' };
+        this.log(`⚡ ${names[name]}`);
+        this.dom.bannerText.textContent = names[name];
+    }
+
+    setScale(v) {
+        this.tracker.scale = v;
+        const lbl = v === 1 ? '1 m/u' : v === 10 ? '10 m/u' : v === 100 ? '100 m/u' : '1 km/u';
+        this.dom.scaleVal.textContent = lbl;
+        document.querySelectorAll('.scale-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.scale) === v));
+        this.log(`📐 Escala → ${lbl}`);
+    }
+
+    toggleTrail() {
+        this.stage.setTrailEnabled(!this.stage.trailEnabled);
+        this.dom.trailBtn.classList.toggle('active', this.stage.trailEnabled);
+    }
+    toggleAxes() {
+        this.stage.setAxesEnabled(!this.stage.axesEnabled);
+        this.dom.axesBtn.classList.toggle('active', this.stage.axesEnabled);
+    }
+    toggleMetricGrid() {
+        this.stage.setGridEnabled(!this.stage.metricGridEnabled);
+        this.dom.gridBtn.classList.toggle('active', this.stage.metricGridEnabled);
+    }
+    resetTrail() {
+        this.tracker.resetTrail();
+        this.log("↺ Trail reseteado");
+    }
+
+    verifyMatrix() {
+        const M = this.matrix.getMatrix(this.currentDim);
+        const a = this.matrix.analyze(M);
+        if (a.symmetric && a.rank2) {
+            this.log(`✅ Matriz ${a.N}×${a.N} verificada · ‖M‖_F=${a.frobenius.toExponential(3)}`);
+        } else {
+            this.log(`❌ Fallo sim=${a.symmetric} r2=${a.rank2}`);
+        }
+    }
+
+    renderMatrix(dim) {
+        const d = dim !== undefined ? dim : this.currentDim;
+        const M = this.matrix.getMatrix(d);
+        const N = d + 1;
+        this.dom.matTitle.textContent = `MATRIZ INVARIANTE DE RANGO 2`;
+        this.dom.matDim.textContent = `[${N}×${N} — Índices 0..${d}]`;
+        const L = Math.min(6, N);
+        let html = '<table class="matrix-table">';
+        for (let i = 0; i < L; i++) {
+            html += '<tr>';
+            for (let j = 0; j < L; j++) {
+                const v = M[i][j];
+                if (v === 0) html += '<td class="zero">0</td>';
+                else {
+                    const t = Math.abs(v) < 1e-4 ? v.toExponential(1) : v.toFixed(4);
+                    html += `<td class="nonzero">${t}</td>`;
+                }
+            }
+            html += '<td class="tail">…</td></tr>';
+        }
+        html += `<tr><td class="tail" colspan="${L+1}">… hasta índice ${d} …</td></tr></table>`;
+        this.dom.matContent.innerHTML = html;
+    }
+
+    async runSequence() {
+        if (this._seqRunning) return;
+        this._seqRunning = true;
+        this._forwardStore = {};
+        this.dom.seqRunBtn.disabled = true;
+        this.dom.seqOverlay.classList.add('active');
+        this.dom.matrixInspector.classList.add('sequencing');
+
+        const FWD = [5,6,7,8,9,10,11];
+        const SWP = [15,26];
+        const REV = [26,15,11,10,9,8,7,6,5];
+        const STEPS = [
+            ...FWD.map(d => ({ dim: d, phase: 'FORWARD', short: 'FWD' })),
+            ...SWP.map(d => ({ dim: d, phase: 'BARRIDO', short: 'SWP' })),
+            ...REV.map(d => ({ dim: d, phase: 'REVERSAL', short: 'REV' }))
+        ];
+        const total = STEPS.length;
+        const errs = [];
+        let allZero = true;
+
+        this.log("🔬 SECUENCIA 5D→26D + REVERSAL");
+
+        for (let i = 0; i < STEPS.length; i++) {
+            if (!this._seqRunning) return;
+            const { dim, phase, short } = STEPS[i];
+            const N = dim + 1;
+            const M = this.matrix.getMatrix(dim);
+            const a = this.matrix.analyze(M);
+
+            if (short !== 'REV') this._forwardStore[dim] = M.map(r => Float64Array.from(r));
+            let err = null, ok = null;
+            if (short === 'REV' && this._forwardStore[dim]) {
+                err = this.matrix.frobeniusDiff(M, this._forwardStore[dim]);
+                ok = err === 0;
+                errs.push({ dim, err });
+                if (!ok) allZero = false;
+            }
+
+            this.currentDim = dim;
+            this.renderMatrix(dim);
+
+            this.dom.seqProgress.textContent = `${i+1} / ${total}`;
+            this.dom.seqProgressFill.style.width = `${((i+1)/total)*100}%`;
+            this.dom.seqPhase.textContent = phase;
+            this.dom.seqDim.textContent = `${dim} D · índice ${dim}`;
+            this.dom.seqSize.textContent = `${N}×${N}`;
+            this.dom.seqSym.textContent = a.symmetric ? '✓ OK' : '✗';
+            this.dom.seqSym.className = 'seq-val ' + (a.symmetric ? 'ok' : 'err');
+            this.dom.seqRank2.textContent = a.rank2 ? '✓ OK' : '✗';
+            this.dom.seqRank2.className = 'seq-val ' + (a.rank2 ? 'ok' : 'err');
+            this.dom.seqFrobenius.textContent = a.frobenius.toExponential(4);
+            if (err !== null) {
+                this.dom.seqError.textContent = err === 0 ? '0.000e+0 ✓' : err.toExponential(3);
+                this.dom.seqError.className = 'seq-val ' + (ok ? 'ok' : 'err');
+            } else {
+                this.dom.seqError.textContent = '—';
+                this.dom.seqError.className = 'seq-val warn';
+            }
+
+            // Visual: pulseRing cada paso
+            this.stage.actions.pulseRing(new THREE.Vector3(0,0,0), 0xe066ff, 8, 0.8);
+
+            const tag = short === 'FWD' ? '📐' : short === 'SWP' ? '⚡' : '🔁';
+            const errTag = err === null ? '' : (err === 0 ? ' | err=0 ✓' : ` | err=${err.toExponential(2)} ✗`);
+            this.log(`${tag} [${i+1}/${total}] ${short} D=${dim} | ${N}×${N}${errTag}`);
+
+            await this.sleep(short === 'REV' ? 450 : 320);
+        }
+
+        if (allZero) {
+            this.log("✅ REVERSAL VERIFICADO · error = 0");
+            this.dom.bannerText.textContent = "REVERSAL VERIFICADO — ERROR = 0";
+            // Celebración visual
+            this.stage.actionBigBang();
+        }
+
+        this._seqRunning = false;
+        this.dom.seqRunBtn.disabled = false;
+        this.dom.matrixInspector.classList.remove('sequencing');
+    }
+}
+
+(function bootstrap() {
+    function start() {
+        try { window.app = new App(); }
+        catch (e) {
+            console.error(e);
+            const el = document.getElementById('console-log');
+            if (el) el.textContent = '⚠ Error: ' + e.message;
+        }
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+    else start();
+})();
+</script>
+</body>
+</html>

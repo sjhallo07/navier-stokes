@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Barridos simultáneos 5D · 15D · 26D · Intersecciones marcadas</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; background: #000205; color: #00f0ff;
+  font-family: 'Segoe UI', Monaco, monospace; }
+#viewport { position: fixed; inset: 0; }
+#viewport canvas { display: block; }
+
+/* HUD izquierdo: estado de los 3 barridos */
+#hud {
+  position: fixed; top: 12px; left: 12px;
+  background: rgba(2,5,14,0.94); border: 1px solid #00f0ff;
+  border-radius: 6px; padding: 12px 14px;
+  z-index: 10; box-shadow: 0 0 22px rgba(0,240,255,0.4);
+  font-size: 10px; min-width: 300px;
+}
+#hud .title {
+  color: #fff; font-weight: bold; letter-spacing: 2px;
+  border-bottom: 1px solid #00f0ff44; padding-bottom: 5px;
+  margin-bottom: 8px; text-transform: uppercase; font-size: 10px;
+  display: flex; justify-content: space-between;
+}
+#hud .sweep {
+  margin: 5px 0; padding: 6px 8px; border-radius: 3px;
+  background: rgba(0,0,0,0.5);
+  border-left: 3px solid #00f0ff;
+}
+#hud .sweep.s5  { border-left-color: #00ff88; }
+#hud .sweep.s15 { border-left-color: #ffe600; }
+#hud .sweep.s26 { border-left-color: #ff66cc; }
+#hud .sweep .head {
+  display: flex; justify-content: space-between;
+  font-weight: bold; margin-bottom: 3px;
+  font-size: 11px;
+}
+#hud .sweep.s5  .head { color: #00ff88; }
+#hud .sweep.s15 .head { color: #ffe600; }
+#hud .sweep.s26 .head { color: #ff66cc; }
+#hud .sweep .row {
+  display: flex; justify-content: space-between;
+  font-family: monospace; font-size: 9px; margin: 1px 0;
+}
+#hud .sweep .k { color: #668899; }
+#hud .sweep .v { color: #fff; font-weight: bold; }
+
+/* Panel de encuentros */
+#meetings {
+  position: fixed; top: 12px; right: 12px;
+  width: 400px; max-height: calc(100vh - 40px);
+  background: rgba(2,5,14,0.94); border: 1px solid #ff66cc;
+  border-radius: 6px; padding: 12px;
+  z-index: 10; box-shadow: 0 0 22px rgba(255,102,204,0.4);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+#meetings .title {
+  color: #ff66cc; font-weight: bold; letter-spacing: 2px;
+  border-bottom: 1px solid #ff66cc44; padding-bottom: 5px;
+  margin-bottom: 8px; text-transform: uppercase; font-size: 10px;
+  display: flex; justify-content: space-between;
+}
+#meetings .filters {
+  display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px;
+}
+#meetings .chip {
+  background: #061826; color: #00f0ff; border: 1px solid #00f0ff;
+  padding: 2px 8px; font-size: 8px; font-weight: bold;
+  border-radius: 10px; cursor: pointer; user-select: none;
+  transition: all 0.15s;
+}
+#meetings .chip:hover { background: #00f0ff; color: #000; }
+#meetings .chip.off { opacity: 0.3; }
+#meetings .chip.m5_15  { border-color: #00ff88; color: #00ff88; }
+#meetings .chip.m5_26  { border-color: #ff66cc; color: #ff66cc; }
+#meetings .chip.m15_26 { border-color: #ffe600; color: #ffe600; }
+#meetings .chip.triple { border-color: #ff0055; color: #ff0055; }
+#meetings .log-body {
+  flex: 1; overflow-y: auto; font-size: 9px;
+  line-height: 1.5; font-family: monospace;
+  scrollbar-width: thin; scrollbar-color: #ff66cc #000;
+}
+#meetings .log-body::-webkit-scrollbar { width: 6px; }
+#meetings .log-body::-webkit-scrollbar-thumb { background: #ff66cc44; border-radius: 3px; }
+
+.mtg-row {
+  padding: 4px 6px; margin: 3px 0;
+  background: rgba(0,0,0,0.4); border-radius: 3px;
+  border-left: 3px solid #00f0ff;
+  animation: mtg-in 0.4s ease;
+  font-size: 9px;
+}
+@keyframes mtg-in {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.mtg-row.m5_15  { border-left-color: #00ff88; }
+.mtg-row.m5_26  { border-left-color: #ff66cc; }
+.mtg-row.m15_26 { border-left-color: #ffe600; }
+.mtg-row.triple { border-left-color: #ff0055; background: rgba(255,0,85,0.08); }
+
+.mtg-row .head {
+  display: flex; justify-content: space-between;
+  margin-bottom: 2px;
+}
+.mtg-row .tag {
+  font-weight: bold; font-size: 9px;
+}
+.mtg-row.m5_15  .tag { color: #00ff88; }
+.mtg-row.m5_26  .tag { color: #ff66cc; }
+.mtg-row.m15_26 .tag { color: #ffe600; }
+.mtg-row.triple .tag { color: #ff0055; }
+.mtg-row .time { color: #446655; font-size: 8px; }
+.mtg-row .detail {
+  color: #aabbcc; font-size: 8.5px;
+  font-family: monospace; line-height: 1.35;
+}
+.mtg-row .detail b { color: #fff; }
+.mtg-row .detail .val5  { color: #00ff88; font-weight: bold; }
+.mtg-row .detail .val15 { color: #ffe600; font-weight: bold; }
+.mtg-row .detail .val26 { color: #ff66cc; font-weight: bold; }
+
+/* Contadores */
+#counters {
+  position: fixed; top: 12px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 5px; flex-wrap: wrap;
+  justify-content: center; z-index: 10;
+  pointer-events: none;
+}
+.counter {
+  background: rgba(2,5,14,0.9); border: 1px solid #00f0ff;
+  border-radius: 4px; padding: 5px 10px;
+  font-family: monospace; font-size: 9px; color: #fff;
+  min-width: 80px; text-align: center;
+  transition: all 0.15s;
+}
+.counter .lbl { color: #668899; font-size: 7px; letter-spacing: 1px; text-transform: uppercase; }
+.counter .num { font-size: 14px; font-weight: bold; margin-top: 1px; }
+.counter.flash { transform: scale(1.18); }
+.counter.c5_15  { border-color: #00ff88; }
+.counter.c5_15  .num { color: #00ff88; }
+.counter.c5_26  { border-color: #ff66cc; }
+.counter.c5_26  .num { color: #ff66cc; }
+.counter.c15_26 { border-color: #ffe600; }
+.counter.c15_26 .num { color: #ffe600; }
+.counter.ctrip  { border-color: #ff0055; }
+.counter.ctrip  .num { color: #ff0055; }
+
+/* Controls */
+#controls {
+  position: fixed; bottom: 12px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 5px; flex-wrap: wrap;
+  justify-content: center;
+  background: rgba(2,5,14,0.92); border: 1px solid #00f0ff;
+  border-radius: 6px; padding: 8px 10px;
+  z-index: 10; box-shadow: 0 0 22px rgba(0,240,255,0.35);
+}
+button {
+  background: #061826; color: #00f0ff;
+  border: 1px solid #00f0ff; padding: 6px 12px;
+  font-family: inherit; font-size: 10px; font-weight: bold;
+  cursor: pointer; border-radius: 3px; transition: all 0.15s;
+}
+button:hover { background: #00f0ff; color: #000; }
+button.active { background: #ff0055; color: #fff; border-color: #ff0055; }
+button.paused { background: #ffe600; color: #000; border-color: #ffe600; }
+
+/* Legenda */
+#legend {
+  position: fixed; bottom: 12px; right: 12px;
+  background: rgba(2,5,14,0.9); border: 1px solid #00f0ff44;
+  border-radius: 6px; padding: 8px 10px; z-index: 9;
+  font-size: 9px; font-family: monospace; color: #668899;
+}
+#legend .row { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
+#legend .dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  box-shadow: 0 0 6px currentColor;
+}
+</style>
+</head>
+<body>
+
+<div id="viewport"></div>
+
+<!-- HUD izquierdo -->
+<div id="hud">
+  <div class="title">
+    <span>Barridos simultáneos</span>
+    <span id="hud-t" style="color:#ffe600;">t = 0.000 s</span>
+  </div>
+  <div class="sweep s5">
+    <div class="head"><span>🌊 Barrido 5D</span><span id="h5-f">—</span></div>
+    <div class="row"><span class="k">Amplitud A₅(t):</span><span class="v" id="h5-amp">0.000</span></div>
+    <div class="row"><span class="k">Fase φ₅:</span><span class="v" id="h5-ph">0.000</span></div>
+    <div class="row"><span class="k">Pico actual:</span><span class="v" id="h5-pk">—</span></div>
+  </div>
+  <div class="sweep s15">
+    <div class="head"><span>⚡ Barrido 15D</span><span id="h15-f">—</span></div>
+    <div class="row"><span class="k">Amplitud A₁₅(t):</span><span class="v" id="h15-amp">0.000</span></div>
+    <div class="row"><span class="k">Fase φ₁₅:</span><span class="v" id="h15-ph">0.000</span></div>
+    <div class="row"><span class="k">Pico actual:</span><span class="v" id="h15-pk">—</span></div>
+  </div>
+  <div class="sweep s26">
+    <div class="head"><span>🔮 Barrido 26D</span><span id="h26-f">—</span></div>
+    <div class="row"><span class="k">Amplitud A₂₆(t):</span><span class="v" id="h26-amp">0.000</span></div>
+    <div class="row"><span class="k">Fase φ₂₆:</span><span class="v" id="h26-ph">0.000</span></div>
+    <div class="row"><span class="k">Pico actual:</span><span class="v" id="h26-pk">—</span></div>
+  </div>
+</div>
+
+<!-- Contadores de encuentros -->
+<div id="counters">
+  <div class="counter c5_15"  id="cnt-5-15"><div class="lbl">5D↔15D</div><div class="num">0</div></div>
+  <div class="counter c5_26"  id="cnt-5-26"><div class="lbl">5D↔26D</div><div class="num">0</div></div>
+  <div class="counter c15_26" id="cnt-15-26"><div class="lbl">15D↔26D</div><div class="num">0</div></div>
+  <div class="counter ctrip"  id="cnt-trip"><div class="lbl">Triple</div><div class="num">0</div></div>
+</div>
+
+<!-- Panel de encuentros -->
+<div id="meetings">
+  <div class="title">
+    <span>📋 Encuentros detectados</span>
+    <span id="mtg-count">0</span>
+  </div>
+  <div class="filters">
+    <span class="chip m5_15"  data-cat="5_15">5D↔15D</span>
+    <span class="chip m5_26"  data-cat="5_26">5D↔26D</span>
+    <span class="chip m15_26" data-cat="15_26">15D↔26D</span>
+    <span class="chip triple" data-cat="triple">Triple</span>
+  </div>
+  <div class="log-body" id="mtg-body"></div>
+</div>
+
+<!-- Controls -->
+<div id="controls">
+  <button id="btn-pause">⏸ Pausa</button>
+  <button id="btn-speed">⚡ ×1</button>
+  <button id="btn-clear">🗑 Limpiar</button>
+  <button id="btn-reset">↺ Reset</button>
+  <button id="btn-marks">📍 Marcas ON</button>
+</div>
+
+<!-- Legend -->
+<div id="legend">
+  <div class="row"><span class="dot" style="background:#00ff88;color:#00ff88;"></span> Barrido 5D</div>
+  <div class="row"><span class="dot" style="background:#ffe600;color:#ffe600;"></span> Barrido 15D</div>
+  <div class="row"><span class="dot" style="background:#ff66cc;color:#ff66cc;"></span> Barrido 26D</div>
+  <div class="row"><span class="dot" style="background:#ff0055;color:#ff0055;"></span> Intersección triple</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+"use strict";
+
+/* ============================================================
+   CONFIGURACIÓN
+   ============================================================ */
+const DIM_MAX = 26;
+
+/* Tres barridos con frecuencias relativas primas entre sí (inconmensurables)
+   para evitar sincronizaciones triviales */
+const SWEEPS = [
+  {
+    id: 's5',
+    label: '5D',
+    freq: 0.7,          // frecuencia angular base
+    k: 5,               // factor dimensional
+    color: 0x00ff88,
+    hex: '#00ff88',
+    wave: null,          // se asigna luego
+    phase: 0,
+    lastPeakT: 0,
+    lastCrossT: 0,
+    peakPositions: []    // posiciones de picos detectados
+  },
+  {
+    id: 's15',
+    label: '15D',
+    freq: 1.1,
+    k: 15,
+    color: 0xffe600,
+    hex: '#ffe600',
+    wave: null,
+    phase: 0,
+    lastPeakT: 0,
+    lastCrossT: 0,
+    peakPositions: []
+  },
+  {
+    id: 's26',
+    label: '26D',
+    freq: 1.7,
+    k: 26,
+    color: 0xff66cc,
+    hex: '#ff66cc',
+    wave: null,
+    phase: 0,
+    lastPeakT: 0,
+    lastCrossT: 0,
+    peakPositions: []
+  }
+];
+
+/* Cruces y umbrales */
+const CROSS_THRESHOLD = 0.06;        // |A_i(t) - A_j(t)| < threshold → cruce
+const MEET_THRESHOLD = 0.02;          // coincidencia fuerte
+const TRIPLE_THRESHOLD = 0.08;        // los tres juntos
+const COOLDOWN = 0.35;                 // segundos mínimos entre eventos del mismo tipo
+
+/* Estado global */
+let paused = false;
+let speedMult = 1;
+let tGlobal = 0;
+let marksVisible = true;
+
+/* Contadores por categoría */
+const counters = { '5_15': 0, '5_26': 0, '15_26': 0, 'triple': 0 };
+const filters = { '5_15': true, '5_26': true, '15_26': true, 'triple': true };
+
+/* Cooldowns para no saturar */
+const lastEventTime = { '5_15': -10, '5_26': -10, '15_26': -10, 'triple': -10 };
+
+/* Historial de amplitudes (para gráfico de fondo) */
+const HISTORY_LEN = 300;
+const history = { t: [], s5: [], s15: [], s26: [] };
+
+/* Encuentros detectados (para marcadores 3D persistentes) */
+const meetings = [];
+
+/* ============================================================
+   CÁLCULO DE LAS TRES ONDAS SIMULTÁNEAS
+   ============================================================ */
+
+/**
+ * Cada barrido es una onda con su propia frecuencia, modulada por el
+ * factor dimensional k (5, 15, 26). Se toma como muestra la integral
+ * de los valores M[i][j] de la matriz invariante (rápida de calcular).
+ */
+function sweepAmplitude(sweep, t) {
+  const k = sweep.k;
+  const f = sweep.freq;
+
+  // Componente principal: oscilación a frecuencia f
+  const main = Math.sin(f * t) * Math.cos(f * 0.37 * t + k * 0.1);
+
+  // Armónicos con decaimiento factorial (k!)
+  const arm1 = Math.sin(f * 1.9 * t + k * 0.21) / Math.sqrt(k);
+  const arm2 = Math.sin(f * 3.1 * t + k * 0.43) / (k * 0.5);
+
+  // Envolvente lenta modulada por k
+  const env = 0.85 + 0.15 * Math.sin(t * 0.23 + k * 0.05);
+
+  return (main + arm1 * 0.4 + arm2 * 0.2) * env;
+}
+
+function sweepPhase(sweep, t) {
+  return (sweep.freq * t + sweep.k * 0.1) % (2 * Math.PI);
+}
+
+/* ============================================================
+   DETECCIÓN DE ENCUENTROS
+   ============================================================ */
+function detectMeetings(amps, t) {
+  const events = [];
+
+  // 1. Cruces por pares
+  const pairs = [
+    { a: 's5', b: 's15', cat: '5_15', label: '5D↔15D', color: 0x00ff88 },
+    { a: 's5', b: 's26', cat: '5_26', label: '5D↔26D', color: 0xff66cc },
+    { a: 's15', b: 's26', cat: '15_26', label: '15D↔26D', color: 0xffe600 }
+  ];
+
+  for (const p of pairs) {
+    const diff = Math.abs(amps[p.a] - amps[p.b]);
+    if (diff < CROSS_THRESHOLD && t - lastEventTime[p.cat] > COOLDOWN) {
+      lastEventTime[p.cat] = t;
+      events.push({
+        cat: p.cat,
+        label: p.label,
+        color: p.color,
+        t,
+        amp5: amps.s5,
+        amp15: amps.s15,
+        amp26: amps.s26,
+        diff,
+        strength: 1 - diff / CROSS_THRESHOLD
+      });
+    }
+  }
+
+  // 2. Coincidencia triple
+  const range3 = Math.max(amps.s5, amps.s15, amps.s26) - Math.min(amps.s5, amps.s15, amps.s26);
+  if (range3 < TRIPLE_THRESHOLD && t - lastEventTime.triple > COOLDOWN * 1.5) {
+    lastEventTime.triple = t;
+    events.push({
+      cat: 'triple',
+      label: 'TRIPLE',
+      color: 0xff0055,
+      t,
+      amp5: amps.s5,
+      amp15: amps.s15,
+      amp26: amps.s26,
+      diff: range3,
+      strength: 1 - range3 / TRIPLE_THRESHOLD
+    });
+  }
+
+  return events;
+}
+
+/* ============================================================
+   DETECCIÓN DE PICOS LOCALES (para HUD "pico actual")
+   ============================================================ */
+const prevAmps = { s5: 0, s15: 0, s26: 0 };
+const prevPrevAmps = { s5: 0, s15: 0, s26: 0 };
+const peakInfo = { s5: '—', s15: '—', s26: '—' };
+
+function detectPeaks(amps, t) {
+  for (const s of ['s5', 's15', 's26']) {
+    const cur = amps[s];
+    const prv = prevAmps[s];
+    const prv2 = prevPrevAmps[s];
+
+    // Pico local: prv > prv2 y prv > cur
+    if (prv > prv2 && prv > cur && prv > 0.6) {
+      // Registrar pico
+      peakInfo[s] = `↑ ${prv.toFixed(3)} @ t=${t.toFixed(2)}`;
+    }
+    // Valle local
+    if (prv < prv2 && prv < cur && prv < -0.6) {
+      peakInfo[s] = `↓ ${prv.toFixed(3)} @ t=${t.toFixed(2)}`;
+    }
+
+    prevPrevAmps[s] = prv;
+    prevAmps[s] = cur;
+  }
+}
+
+/* ============================================================
+   ESCENA 3D
+   ============================================================ */
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x000205, 0.006);
+
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 2000);
+camera.position.set(0, 30, 55);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+document.getElementById('viewport').appendChild(renderer.domElement);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.target.set(0, 0, 0);
+
+/* Luces */
+scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+const p1 = new THREE.PointLight(0x00f0ff, 2.5, 200); p1.position.set(30, 40, 30); scene.add(p1);
+const p2 = new THREE.PointLight(0xff66cc, 2.0, 200); p2.position.set(-30, 20, -30); scene.add(p2);
+
+/* Grid base */
+const grid = new THREE.GridHelper(60, 30, 0x00f0ff, 0x002233);
+grid.material.opacity = 0.25; grid.material.transparent = true;
+scene.add(grid);
+
+/* ============================================================
+   EJES DE REFERENCIA — 3 planos ortogonales
+   ============================================================ */
+const axisMat = new THREE.LineBasicMaterial({ color: 0x445566, transparent: true, opacity: 0.4 });
+function makeAxisLine(a, b) {
+  const g = new THREE.BufferGeometry().setFromPoints([a, b]);
+  return new THREE.Line(g, axisMat);
+}
+scene.add(makeAxisLine(new THREE.Vector3(-30, 0, 0), new THREE.Vector3(30, 0, 0))); // X
+scene.add(makeAxisLine(new THREE.Vector3(0, -20, 0), new THREE.Vector3(0, 20, 0))); // Y
+scene.add(makeAxisLine(new THREE.Vector3(0, 0, -30), new THREE.Vector3(0, 0, 30))); // Z
+
+/* ============================================================
+   TRES CURVAS 3D — una por barrido
+   Cada barrido dibuja su amplitud en su propio plano XZ rotado
+   ============================================================ */
+
+/* Segmentos de la curva */
+const CURVE_LEN = 400;
+const curves = {};
+
+for (let si = 0; si < SWEEPS.length; si++) {
+  const sweep = SWEEPS[si];
+
+  // Ángulo de rotación para separar los 3 planos (0°, 60°, 120°)
+  const angle = (si / SWEEPS.length) * Math.PI * 2;
+
+  // Geometría de línea
+  const geo = new THREE.BufferGeometry();
+  const positions = new Float32Array(CURVE_LEN * 3);
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setDrawRange(0, CURVE_LEN);
+
+  const mat = new THREE.LineBasicMaterial({
+    color: sweep.color,
+    transparent: true,
+    opacity: 0.9,
+    linewidth: 2
+  });
+  const line = new THREE.Line(geo, mat);
+  scene.add(line);
+
+  // Grupo rotado
+  const group = new THREE.Group();
+  group.rotation.y = angle;
+  scene.add(group);
+  group.add(line);
+
+  // Esfera indicadora del frente de onda (posición actual)
+  const dot = new THREE.Mesh(
+    new THREE.SphereGeometry(0.4, 16, 16),
+    new THREE.MeshBasicMaterial({ color: sweep.color })
+  );
+  group.add(dot);
+
+  // Glow alrededor del dot
+  const glow = new THREE.Mesh(
+    new THREE.SphereGeometry(1.0, 16, 16),
+    new THREE.MeshBasicMaterial({
+      color: sweep.color, transparent: true, opacity: 0.25,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    })
+  );
+  group.add(glow);
+
+  // Etiqueta 3D (canvas sprite)
+  const labelCanvas = document.createElement('canvas');
+  labelCanvas.width = 256; labelCanvas.height = 64;
+  const lctx = labelCanvas.getContext('2d');
+  lctx.fillStyle = sweep.hex;
+  lctx.font = 'bold 36px monospace';
+  lctx.textAlign = 'center';
+  lctx.textBaseline = 'middle';
+  lctx.fillText(sweep.label, 128, 32);
+  const labelTex = new THREE.CanvasTexture(labelCanvas);
+  const labelSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: labelTex, transparent: true, depthWrite: false
+  }));
+  labelSprite.scale.set(4, 1, 1);
+  labelSprite.position.set(0, 12, -20);
+  group.add(labelSprite);
+
+  curves[sweep.id] = {
+    geo, line, group, dot, glow, labelSprite,
+    positions,
+    history: []   // buffer circular de amplitudes
+  };
+}
+
+/* ============================================================
+   MARCADORES DE ENCUENTROS (esferas persistentes 3D)
+   ============================================================ */
+const markerGroup = new THREE.Group();
+scene.add(markerGroup);
+
+/* Pool de marcadores */
+const MARKER_MAX = 200;
+const markerPool = [];
+for (let k = 0; k < MARKER_MAX; k++) {
+  const geo = new THREE.SphereGeometry(0.6, 12, 12);
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0xffffff, transparent: true, opacity: 0.7,
+    blending: THREE.AdditiveBlending, depthWrite: false
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.visible = false;
+  markerGroup.add(mesh);
+  markerPool.push({ mesh, active: false, pulse: 0 });
+}
+
+function spawnMarker(pos, color, size = 1) {
+  for (const m of markerPool) {
+    if (!m.active) {
+      m.mesh.position.copy(pos);
+      m.mesh.material.color.setHex(color);
+      m.mesh.scale.setScalar(size);
+      m.mesh.visible = true;
+      m.active = true;
+      m.pulse = 0;
+      return m;
+    }
+  }
+  return null;
+}
+
+function updateMarkers(dt) {
+  for (const m of markerPool) {
+    if (!m.active) continue;
+    m.pulse += dt;
+    const s = 1 + 0.3 * Math.sin(m.pulse * 4);
+    m.mesh.scale.setScalar(s);
+    m.mesh.material.opacity = 0.5 + 0.3 * Math.sin(m.pulse * 3);
+  }
+}
+
+/* Anillos de expansión al detectar encuentro */
+const ringPool = [];
+for (let k = 0; k < 30; k++) {
+  const geo = new THREE.RingGeometry(0.5, 0.7, 24);
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0xffffff, side: THREE.DoubleSide,
+    transparent: true, opacity: 0,
+    blending: THREE.AdditiveBlending, depthWrite: false
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.visible = false;
+  scene.add(mesh);
+  ringPool.push({ mesh, active: false, age: 0, life: 1.5 });
+}
+
+function spawnRing(pos, color) {
+  for (const r of ringPool) {
+    if (!r.active) {
+      r.mesh.position.copy(pos);
+      r.mesh.position.y = 0.1;
+      r.mesh.material.color.setHex(color);
+      r.mesh.visible = true;
+      r.active = true;
+      r.age = 0;
+      r.mesh.scale.setScalar(0.5);
+      return;
+    }
+  }
+}
+
+function updateRings(dt) {
+  for (const r of ringPool) {
+    if (!r.active) continue;
+    r.age += dt;
+    const k = r.age / r.life;
+    if (k >= 1) { r.active = false; r.mesh.visible = false; continue; }
+    r.mesh.scale.setScalar(0.5 + k * 15);
+    r.mesh.material.opacity = 0.8 * (1 - k);
+  }
+}
+
+/* ============================================================
+   POSICIÓN EN 3D DE UN ENCUENTRO
+   Se ubica en la intersección espacial de las curvas participantes.
+   Convención: las 3 curvas oscilan en sus planos rotados.
+   El marcador se coloca en el centroide del punto en el que las
+   dos (o tres) ondas se encuentran en el instante t.
+   ============================================================ */
+function meetingPosition(amps, category) {
+  // Cada barrido vive en un plano rotado a 0°, 120°, 240°
+  // La posición del punto (x, y, z) usa:
+  //   - eje X: dimensión (5, 15, o 26 normalizada) + amplitud
+  //   - eje Y: amplitud de la onda
+  //   - eje Z: tiempo (desplazamiento)
+
+  const radiusFor = (k) => 15 + k * 0.6; // distancia radial según dimensión
+  const yFromAmp = (a) => a * 8;
+
+  function sweepPoint(sweep, amp, t) {
+    const ang = (SWEEPS.indexOf(sweep) / SWEEPS.length) * Math.PI * 2;
+    const r = radiusFor(sweep.k);
+    // Posición angular dependiente de la fase
+    const phase = sweepPhase(sweep, t);
+    const x = Math.cos(ang + phase * 0.15) * r;
+    const z = Math.sin(ang + phase * 0.15) * r;
+    const y = yFromAmp(amp);
+    return new THREE.Vector3(x, y, z);
+  }
+
+  if (category === 'triple') {
+    const p5 = sweepPoint(SWEEPS[0], amps.s5, tGlobal);
+    const p15 = sweepPoint(SWEEPS[1], amps.s15, tGlobal);
+    const p26 = sweepPoint(SWEEPS[2], amps.s26, tGlobal);
+    return new THREE.Vector3()
+      .add(p5).add(p15).add(p26)
+      .multiplyScalar(1/3);
+  }
+
+  // Pares
+  const map = {
+    '5_15': [SWEEPS[0], SWEEPS[1]],
+    '5_26': [SWEEPS[0], SWEEPS[2]],
+    '15_26': [SWEEPS[1], SWEEPS[2]]
+  };
+  const [a, b] = map[category];
+  const pa = sweepPoint(a, amps[a.id], tGlobal);
+  const pb = sweepPoint(b, amps[b.id], tGlobal);
+  return new THREE.Vector3().add(pa).add(pb).multiplyScalar(0.5);
+}
+
+/* ============================================================
+   LOG DE ENCUENTROS
+   ============================================================ */
+const mtgBody = document.getElementById('mtg-body');
+const mtgCount = document.getElementById('mtg-count');
+const MAX_MTG = 100;
+
+function logMeeting(ev) {
+  // Contador
+  counters[ev.cat]++;
+  const cnt = document.getElementById('cnt-' + ev.cat.replace('_', '-'));
+  if (cnt) {
+    cnt.querySelector('.num').textContent = counters[ev.cat];
+    cnt.classList.add('flash');
+    setTimeout(() => cnt.classList.remove('flash'), 200);
+  }
+
+  // Filtro
+  if (!filters[ev.cat]) return;
+
+  const now = performance.now() / 1000;
+  const mm = String(Math.floor(now / 60)).padStart(2, '0');
+  const ss = String(Math.floor(now % 60)).padStart(2, '0');
+  const ms = String(Math.floor((now * 1000) % 1000)).padStart(3, '0');
+
+  const row = document.createElement('div');
+  row.className = 'mtg-row ' + ev.cat;
+
+  const detailHTML = `
+    <span class="val5">A₅=${ev.amp5.toFixed(4)}</span> ·
+    <span class="val15">A₁₅=${ev.amp15.toFixed(4)}</span> ·
+    <span class="val26">A₂₆=${ev.amp26.toFixed(4)}</span><br>
+    Δmáx = <b>${ev.diff.toFixed(5)}</b> · Fuerza = <b>${(ev.strength * 100).toFixed(1)}%</b>
+  `;
+
+  row.innerHTML = `
+    <div class="head">
+      <span class="tag">${ev.label}</span>
+      <span class="time">${mm}:${ss}.${ms} · t=${ev.t.toFixed(3)}s</span>
+    </div>
+    <div class="detail">${detailHTML}</div>
+  `;
+
+  mtgBody.insertBefore(row, mtgBody.firstChild);
+  while (mtgBody.childElementCount > MAX_MTG) {
+    mtgBody.removeChild(mtgBody.lastElementChild);
+  }
+  mtgCount.textContent = mtgBody.childElementCount;
+}
+
+/* ============================================================
+   LOOP PRINCIPAL
+   ============================================================ */
+const clock = new THREE.Clock();
+let frameCount = 0, fpsTimer = 0;
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt_raw = Math.min(clock.getDelta(), 0.1);
+  const dt = paused ? 0 : dt_raw * speedMult;
+
+  if (!paused) {
+    tGlobal += dt;
+  }
+
+  /* --- Calcular amplitudes actuales --- */
+  const amps = {
+    s5:  sweepAmplitude(SWEEPS[0], tGlobal),
+    s15: sweepAmplitude(SWEEPS[1], tGlobal),
+    s26: sweepAmplitude(SWEEPS[2], tGlobal)
+  };
+
+  /* --- Actualizar HUD --- */
+  document.getElementById('hud-t').textContent = `t = ${tGlobal.toFixed(3)} s`;
+  document.getElementById('h5-amp').textContent  = amps.s5.toFixed(4);
+  document.getElementById('h15-amp').textContent = amps.s15.toFixed(4);
+  document.getElementById('h26-amp').textContent = amps.s26.toFixed(4);
+  document.getElementById('h5-ph').textContent  = sweepPhase(SWEEPS[0], tGlobal).toFixed(3);
+  document.getElementById('h15-ph').textContent = sweepPhase(SWEEPS[1], tGlobal).toFixed(3);
+  document.getElementById('h26-ph').textContent = sweepPhase(SWEEPS[2], tGlobal).toFixed(3);
+
+  detectPeaks(amps, tGlobal);
+  document.getElementById('h5-pk').textContent  = peakInfo.s5;
+  document.getElementById('h15-pk').textContent = peakInfo.s15;
+  document.getElementById('h26-pk').textContent = peakInfo.s26;
+
+  /* --- Detección de encuentros --- */
+  if (!paused) {
+    const events = detectMeetings(amps, tGlobal);
+    for (const ev of events) {
+      logMeeting(ev);
+      // Marcador 3D persistente
+      const pos = meetingPosition(amps, ev.cat);
+      spawnMarker(pos, ev.color, 1 + ev.strength * 2);
+      spawnRing(pos, ev.color);
+      // Guardar para posible exportación
+      meetings.push({
+        cat: ev.cat,
+        t: ev.t,
+        amp5: ev.amp5, amp15: ev.amp15, amp26: ev.amp26,
+        diff: ev.diff,
+        pos: { x: pos.x, y: pos.y, z: pos.z }
+      });
+    }
+  }
+
+  /* --- Actualizar las 3 curvas 3D --- */
+  for (const sweep of SWEEPS) {
+    const c = curves[sweep.id];
+    const pos = c.positions;
+
+    // Desplazar buffer: queremos mostrar los últimos CURVE_LEN valores
+    c.history.push(sweepAmplitude(sweep, tGlobal));
+    if (c.history.length > CURVE_LEN) c.history.shift();
+
+    // Rellenar posiciones
+    const n = c.history.length;
+    for (let i = 0; i < CURVE_LEN; i++) {
+      if (i < n) {
+        const amp = c.history[i];
+        // Mapear: X = índice dentro de la historia (ventana deslizante)
+        //          Y = amplitud * escala
+        //          Z = 0 (la curva es plana en su plano local)
+        const t_local = (i / (CURVE_LEN - 1)) - 0.5;
+        pos[i * 3]     = t_local * 50;
+        pos[i * 3 + 1] = amp * 8;
+        pos[i * 3 + 2] = 0;
+      } else {
+        pos[i * 3]     = 0;
+        pos[i * 3 + 1] = 0;
+        pos[i * 3 + 2] = 0;
+      }
+    }
+    c.geo.attributes.position.needsUpdate = true;
+    c.geo.setDrawRange(0, n);
+
+    // Actualizar dot en el extremo derecho (valor actual)
+    const curAmp = c.history.length > 0 ? c.history[c.history.length - 1] : 0;
+    c.dot.position.set(25, curAmp * 8, 0);
+    c.glow.position.copy(c.dot.position);
+    // Pulso del glow
+    const glowScale = 1 + 0.4 * Math.sin(tGlobal * 6 + SWEEPS.indexOf(sweep));
+    c.glow.scale.setScalar(glowScale);
+  }
+
+  updateMarkers(dt_raw);
+  updateRings(dt_raw);
+  controls.update();
+  renderer.render(scene, camera);
+
+  /* FPS */
+  frameCount++;
+  fpsTimer += dt_raw;
+  if (fpsTimer >= 0.5) {
+    frameCount = 0; fpsTimer = 0;
+  }
+}
+
+/* ============================================================
+   CONTROLES
+   ============================================================ */
+const btnPause = document.getElementById('btn-pause');
+const btnSpeed = document.getElementById('btn-speed');
+const btnClear = document.getElementById('btn-clear');
+const btnReset = document.getElementById('btn-reset');
+const btnMarks = document.getElementById('btn-marks');
+
+btnPause.addEventListener('click', () => {
+  paused = !paused;
+  btnPause.textContent = paused ? '▶ Reanudar' : '⏸ Pausa';
+  btnPause.classList.toggle('paused', paused);
+});
+
+btnSpeed.addEventListener('click', () => {
+  const arr = [1, 2, 4, 0.5, 0.25, 8];
+  speedMult = arr[(arr.indexOf(speedMult) + 1) % arr.length];
+  btnSpeed.textContent = `⚡ ×${speedMult}`;
+});
+
+btnClear.addEventListener('click', () => {
+  mtgBody.innerHTML = '';
+  mtgCount.textContent = '0';
+  for (const k in counters) {
+    counters[k] = 0;
+    const el = document.getElementById('cnt-' + k.replace('_', '-'));
+    if (el) el.querySelector('.num').textContent = '0';
+  }
+  meetings.length = 0;
+});
+
+btnReset.addEventListener('click', () => {
+  tGlobal = 0;
+  for (const sweep of SWEEPS) {
+    sweep.phase = 0;
+    sweep.peakPositions = [];
+    const c = curves[sweep.id];
+    c.history.length = 0;
+    for (let i = 0; i < c.positions.length; i++) c.positions[i] = 0;
+    c.geo.attributes.position.needsUpdate = true;
+    c.geo.setDrawRange(0, 0);
+  }
+  // Limpiar marcadores
+  for (const m of markerPool) { m.active = false; m.mesh.visible = false; }
+  for (const r of ringPool) { r.active = false; r.mesh.visible = false; }
+  // Resetear contadores y log
+  btnClear.click();
+  for (const k in lastEventTime) lastEventTime[k] = -10;
+  prevAmps.s5 = prevAmps.s15 = prevAmps.s26 = 0;
+  prevPrevAmps.s5 = prevPrevAmps.s15 = prevPrevAmps.s26 = 0;
+  peakInfo.s5 = peakInfo.s15 = peakInfo.s26 = '—';
+});
+
+btnMarks.addEventListener('click', () => {
+  marksVisible = !marksVisible;
+  markerGroup.visible = marksVisible;
+  btnMarks.textContent = marksVisible ? '📍 Marcas ON' : '📍 Marcas OFF';
+  btnMarks.classList.toggle('active', !marksVisible);
+});
+
+/* Filtros */
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const cat = chip.dataset.cat;
+    filters[cat] = !filters[cat];
+    chip.classList.toggle('off', !filters[cat]);
+  });
+});
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+/* Inicio */
+animate();
+</script>
+</body>
+</html>

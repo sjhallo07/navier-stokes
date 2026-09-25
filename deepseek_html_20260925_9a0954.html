@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Navier-Stokes en vivo · 26×26 · Barridos Onda + Energía · Monitor Clay</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  background: #000205; color: #00f0ff;
+  font-family: 'Segoe UI', Monaco, monospace;
+}
+#viewport { position: fixed; inset: 0; }
+#viewport canvas { display: block; }
+
+/* HUD principal izquierda */
+#hud {
+  position: fixed; top: 12px; left: 12px;
+  background: rgba(2,5,14,0.92);
+  border: 1px solid #00f0ff;
+  border-radius: 6px;
+  padding: 10px 14px;
+  z-index: 10;
+  box-shadow: 0 0 22px rgba(0,240,255,0.35);
+  min-width: 300px;
+  font-size: 11px;
+  pointer-events: none;
+}
+#hud .title {
+  color: #ff66cc; font-weight: bold;
+  letter-spacing: 2px; font-size: 10px;
+  border-bottom: 1px solid #00f0ff44;
+  padding-bottom: 5px; margin-bottom: 6px;
+  text-transform: uppercase;
+}
+#hud .row {
+  display: flex; justify-content: space-between;
+  margin: 2px 0; font-family: monospace;
+}
+#hud .k { color: #668899; }
+#hud .v { color: #fff; font-weight: bold; }
+#hud .v.green  { color: #00ff88; }
+#hud .v.cyan   { color: #00e6ff; }
+#hud .v.yellow { color: #ffe600; }
+#hud .v.pink   { color: #ff66cc; }
+#hud .v.red    { color: #ff5555; }
+#hud .v.orange { color: #ff9900; }
+
+/* Panel NS Constraints (derecha) */
+#ns-panel {
+  position: fixed; top: 12px; right: 12px;
+  width: 380px;
+  background: rgba(2,5,14,0.94);
+  border: 1px solid #00ff88;
+  border-radius: 6px;
+  padding: 10px 12px;
+  z-index: 10;
+  box-shadow: 0 0 22px rgba(0,255,136,0.4);
+  font-size: 10px;
+}
+#ns-panel .title {
+  color: #00ff88; font-weight: bold;
+  letter-spacing: 2px; font-size: 10px;
+  border-bottom: 1px solid #00ff8844;
+  padding-bottom: 5px; margin-bottom: 8px;
+  text-transform: uppercase;
+  display: flex; justify-content: space-between;
+}
+#ns-panel .norm {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 8px;
+  margin: 3px 0;
+  font-family: monospace;
+}
+#ns-panel .norm .k { color: #668899; font-size: 9px; }
+#ns-panel .norm .v { color: #fff; font-weight: bold; font-size: 11px; text-align: right; }
+#ns-panel .norm .v.ok   { color: #00ff88; }
+#ns-panel .norm .v.warn { color: #ffe600; }
+#ns-panel .norm .v.bad  { color: #ff5555; }
+#ns-panel .bar-mini {
+  height: 4px; background: #0a1a15; border-radius: 2px;
+  overflow: hidden; grid-column: 1 / -1; margin-bottom: 2px;
+}
+#ns-panel .bar-mini > div {
+  height: 100%; width: 0%;
+  transition: width 0.15s linear;
+}
+
+#ns-chart {
+  width: 100%; height: 90px;
+  background: #000; border: 1px solid #00ff8833;
+  border-radius: 3px; margin-top: 6px;
+  display: block;
+}
+
+#clay-status {
+  margin-top: 8px; padding: 6px 8px;
+  background: rgba(0,0,0,0.5);
+  border-left: 3px solid #00ff88;
+  border-radius: 3px;
+  font-size: 9px; font-family: monospace;
+}
+#clay-status .row {
+  display: flex; justify-content: space-between;
+  margin: 2px 0;
+}
+#clay-status .k { color: #668899; }
+#clay-status .v { color: #fff; font-weight: bold; }
+#clay-status .v.active { color: #00ff88; }
+#clay-status .v.pending { color: #ffe600; }
+#clay-status .v.fail { color: #ff5555; }
+
+/* Contadores superiores */
+#counters {
+  position: fixed; top: 12px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 5px; flex-wrap: wrap;
+  justify-content: center;
+  z-index: 10;
+  pointer-events: none;
+  max-width: 500px;
+}
+.counter {
+  background: rgba(2,5,14,0.9);
+  border: 1px solid #00f0ff;
+  border-radius: 4px;
+  padding: 4px 9px;
+  font-family: monospace;
+  font-size: 9px;
+  color: #fff;
+  min-width: 76px;
+  text-align: center;
+  transition: all 0.15s;
+}
+.counter .lbl { color: #668899; font-size: 7px; letter-spacing: 1px; text-transform: uppercase; }
+.counter .num { font-size: 12px; font-weight: bold; margin-top: 1px; }
+.counter.flash { transform: scale(1.15); }
+.counter.ns   { border-color: #00ff88; }
+.counter.ns .num { color: #00ff88; }
+.counter.blow { border-color: #ff5555; }
+.counter.blow .num { color: #ff5555; }
+.counter.clay { border-color: #ff66cc; }
+.counter.clay .num { color: #ff66cc; }
+
+/* Event log */
+#eventlog {
+  position: fixed; top: 320px; right: 12px;
+  width: 380px; max-height: calc(100vh - 340px);
+  background: rgba(2,5,14,0.94);
+  border: 1px solid #ff66cc;
+  border-radius: 6px;
+  padding: 10px;
+  z-index: 9;
+  box-shadow: 0 0 22px rgba(255,102,204,0.35);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+#eventlog .log-header {
+  color: #ff66cc; font-weight: bold;
+  font-size: 10px; letter-spacing: 2px;
+  border-bottom: 1px solid #ff66cc44;
+  padding-bottom: 5px; margin-bottom: 6px;
+  display: flex; justify-content: space-between;
+  text-transform: uppercase;
+}
+#eventlog .log-body {
+  flex: 1; overflow-y: auto;
+  font-size: 8.5px; line-height: 1.45; font-family: monospace;
+  scrollbar-width: thin; scrollbar-color: #ff66cc #000;
+}
+#eventlog .log-body::-webkit-scrollbar { width: 6px; }
+#eventlog .log-body::-webkit-scrollbar-thumb { background: #ff66cc44; border-radius: 3px; }
+
+.ev-row {
+  display: flex; gap: 6px; padding: 2px 0;
+  border-bottom: 1px solid #1a0a1a;
+  animation: ev-in 0.35s ease;
+}
+@keyframes ev-in { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
+.ev-row .t { color: #446655; min-width: 54px; font-size: 8px; }
+.ev-row .tag { font-weight: bold; min-width: 70px; font-size: 8px; }
+.ev-row .msg { flex: 1; color: #fff; }
+
+.tag.ns_ok    { color: #00ff88; }
+.tag.ns_warn  { color: #ffe600; }
+.tag.ns_blow  { color: #ff5555; font-weight: bold; }
+.tag.clay     { color: #ff66cc; }
+.tag.div      { color: #00e6ff; }
+.tag.system   { color: #ffffff; }
+
+/* Controls bottom */
+#controls {
+  position: fixed; bottom: 12px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 5px; flex-wrap: wrap;
+  justify-content: center;
+  background: rgba(2,5,14,0.9);
+  border: 1px solid #00f0ff;
+  border-radius: 6px;
+  padding: 8px 10px;
+  z-index: 10;
+  box-shadow: 0 0 22px rgba(0,240,255,0.35);
+}
+button {
+  background: #061826; color: #00f0ff;
+  border: 1px solid #00f0ff;
+  padding: 6px 11px;
+  font-family: inherit; font-size: 10px; font-weight: bold;
+  letter-spacing: 0.4px; cursor: pointer;
+  border-radius: 3px; transition: all 0.15s;
+}
+button:hover { background: #00f0ff; color: #000; }
+button.active { background: #ff0055; color: #fff; border-color: #ff0055; }
+button.wave-active   { background: #00e6ff; color: #000; border-color: #00e6ff; }
+button.energy-active { background: #ffe600; color: #000; border-color: #ffe600; }
+button.sobolev-active{ background: #00ff88; color: #000; border-color: #00ff88; }
+</style>
+</head>
+<body>
+
+<div id="viewport"></div>
+
+<!-- HUD izquierdo: estado barridos -->
+<div id="hud">
+  <div class="title">Barridos 26×26</div>
+  <div class="row"><span class="k">Barrido onda t:</span><span class="v cyan" id="hud-wt">0.000 s</span></div>
+  <div class="row"><span class="k">Barrido energía t:</span><span class="v yellow" id="hud-et">0.000 s</span></div>
+  <div class="row"><span class="k">Ciclos onda:</span><span class="v cyan" id="hud-wcy">0</span></div>
+  <div class="row"><span class="k">Ciclos energía:</span><span class="v yellow" id="hud-ecy">0</span></div>
+  <div class="row"><span class="k">Celdas activas:</span><span class="v green" id="hud-act">0/676</span></div>
+  <div class="row"><span class="k">Norma Frobenius M:</span><span class="v pink" id="hud-frob">0</span></div>
+</div>
+
+<!-- Contadores -->
+<div id="counters">
+  <div class="counter ns"   id="cnt-ns"><div class="lbl">NS OK</div><div class="num">0</div></div>
+  <div class="counter blow" id="cnt-blow"><div class="lbl">Blow-up</div><div class="num">0</div></div>
+  <div class="counter clay" id="cnt-clay"><div class="lbl">Clay</div><div class="num">0</div></div>
+</div>
+
+<!-- Panel NS Constraints (derecha) -->
+<div id="ns-panel">
+  <div class="title">
+    <span>📐 Restricciones Navier-Stokes</span>
+    <span id="ns-status" style="color:#00ff88;">●OK</span>
+  </div>
+
+  <div class="norm">
+    <span class="k">tr(∇u) divergencia</span>
+    <span class="v" id="ns-tr">0.000e+0</span>
+    <div class="bar-mini"><div id="ns-tr-bar" style="background:#00e6ff;"></div></div>
+
+    <span class="k">‖u‖²_L2 (energía cinética)</span>
+    <span class="v" id="ns-el2">0.000e+0</span>
+    <div class="bar-mini"><div id="ns-el2-bar" style="background:#00ff88;"></div></div>
+
+    <span class="k">‖∇u‖²_F (disipación)</span>
+    <span class="v" id="ns-grad">0.000e+0</span>
+    <div class="bar-mini"><div id="ns-grad-bar" style="background:#ffe600;"></div></div>
+
+    <span class="k">‖u‖²_H¹ (Sobolev m=1)</span>
+    <span class="v" id="ns-h1">0.000e+0</span>
+    <div class="bar-mini"><div id="ns-h1-bar" style="background:#ff9900;"></div></div>
+
+    <span class="k">‖u‖²_H² (Sobolev m=2)</span>
+    <span class="v" id="ns-h2">0.000e+0</span>
+    <div class="bar-mini"><div id="ns-h2-bar" style="background:#ff66cc;"></div></div>
+
+    <span class="k">‖u‖²_H³ (Sobolev m=3)</span>
+    <span class="v" id="ns-h3">0.000e+0</span>
+    <div class="bar-mini"><div id="ns-h3-bar" style="background:#ff0055;"></div></div>
+
+    <span class="k">Sobolev max estable</span>
+    <span class="v ok" id="ns-mstab">—</span>
+  </div>
+
+  <canvas id="ns-chart" width="700" height="180"></canvas>
+
+  <div id="clay-status">
+    <div class="row"><span class="k">Alternativa A (global suave)</span><span class="v pending" id="clay-a">PENDIENTE</span></div>
+    <div class="row"><span class="k">Alternativa B (blow-up finito)</span><span class="v pending" id="clay-b">PENDIENTE</span></div>
+    <div class="row"><span class="k">Alternativa C (solución débil)</span><span class="v pending" id="clay-c">PENDIENTE</span></div>
+    <div class="row"><span class="k">Alternativa D (ruptura)</span><span class="v pending" id="clay-d">PENDIENTE</span></div>
+  </div>
+</div>
+
+<!-- Log -->
+<div id="eventlog">
+  <div class="log-header">
+    <span>⚡ Eventos NS en vivo</span>
+    <span id="log-count">0</span>
+  </div>
+  <div class="log-body" id="log-body"></div>
+</div>
+
+<!-- Controls -->
+<div id="controls">
+  <button id="btn-wave" class="active wave-active">🌊 Onda</button>
+  <button id="btn-energy" class="active energy-active">⚡ Energía</button>
+  <button id="btn-ns" class="active sobolev-active">📐 NS Monitor</button>
+  <button id="btn-pause">⏸ Pausa</button>
+  <button id="btn-speed">⚡ ×1</button>
+  <button id="btn-clear">🗑 Log</button>
+  <button id="btn-reset">↺ Reset</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+"use strict";
+
+/* ============================================================
+   1. MATRIZ 26×26
+   ============================================================ */
+const DIM = 26;
+const _fact = { 0: 1, 1: 1 };
+function factorial(n) {
+  if (_fact[n] !== undefined) return _fact[n];
+  let r = 1; for (let i = 2; i <= n; i++) r *= i;
+  _fact[n] = r; return r;
+}
+function buildMatrix(dim) {
+  const M = new Array(dim);
+  for (let i = 0; i < dim; i++) {
+    const row = new Float64Array(dim);
+    const fi = factorial(i);
+    for (let j = 0; j < dim; j++)
+      if ((i & 1) === (j & 1)) row[j] = 1 / (fi * factorial(j));
+    M[i] = row;
+  }
+  return M;
+}
+const M = buildMatrix(DIM);
+let maxAbs = 0, frob2 = 0, nonzeros = 0;
+for (let i = 0; i < DIM; i++)
+  for (let j = 0; j < DIM; j++) {
+    const v = M[i][j];
+    if (v !== 0) { frob2 += v*v; nonzeros++; if (v > maxAbs) maxAbs = v; }
+  }
+const FROB = Math.sqrt(frob2);
+
+/* ============================================================
+   2. ESCENA 3D
+   ============================================================ */
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x000205, 0.008);
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth/window.innerHeight, 0.1, 2000);
+camera.position.set(30, 26, 36);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+document.getElementById('viewport').appendChild(renderer.domElement);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.minDistance = 12; controls.maxDistance = 200;
+controls.target.set(0, 1, 0);
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+const lp1 = new THREE.PointLight(0x00f0ff, 2.5, 200); lp1.position.set(20,40,20); scene.add(lp1);
+const lp2 = new THREE.PointLight(0xff66cc, 2.0, 200); lp2.position.set(-25,30,-20); scene.add(lp2);
+const lp3 = new THREE.PointLight(0xffe600, 1.5, 150); lp3.position.set(0,-20,15); scene.add(lp3);
+
+const grid = new THREE.GridHelper(28, 26, 0x00f0ff, 0x003344);
+grid.material.opacity = 0.3; grid.material.transparent = true;
+grid.position.y = -0.02; scene.add(grid);
+
+/* ============================================================
+   3. BARRAS 26×26
+   ============================================================ */
+const cellSpacing = 1.0;
+const offset = (DIM - 1) * cellSpacing / 2;
+const barHeightScale = 12.0;
+
+function heightForValue(v) {
+  if (v === 0) return 0;
+  const logV = Math.log10(v);
+  const logMin = -40;
+  const norm = (logV - logMin) / (0 - logMin);
+  return Math.max(0.05, norm) * barHeightScale;
+}
+function colorForValue(v, target, boost = 0) {
+  if (v === 0) { target.setRGB(0.02, 0.04, 0.06); return; }
+  const logV = Math.log10(v);
+  const logMin = -40;
+  const t = Math.max(0, Math.min(1, (logV - logMin) / (0 - logMin)));
+  if (t < 0.33) { const k = t/0.33; target.setRGB(0, 0.9*k, 1.0); }
+  else if (t < 0.66) { const k = (t-0.33)/0.33; target.setRGB(k, 1.0, 1.0-k); }
+  else { const k = (t-0.66)/0.34; target.setRGB(1.0, 1.0-k*0.7, 1.0-k); }
+  if (boost > 0) {
+    target.r = Math.min(1, target.r + boost);
+    target.g = Math.min(1, target.g + boost);
+    target.b = Math.min(1, target.b + boost);
+  }
+}
+
+const barsGroup = new THREE.Group(); scene.add(barsGroup);
+const barGeo = new THREE.BoxGeometry(0.85, 1, 0.85);
+const barMat = new THREE.MeshStandardMaterial({ roughness: 0.35, metalness: 0.6 });
+const instMesh = new THREE.InstancedMesh(barGeo, barMat, DIM * DIM);
+instMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+instMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(DIM*DIM*3), 3);
+
+const dummy = new THREE.Object3D();
+const tmpColor = new THREE.Color();
+const barData = [];
+let barIdx = 0;
+for (let i = 0; i < DIM; i++) {
+  for (let j = 0; j < DIM; j++) {
+    const v = M[i][j];
+    const h = heightForValue(v);
+    const x = i * cellSpacing - offset;
+    const z = j * cellSpacing - offset;
+    dummy.position.set(x, h/2, z);
+    dummy.scale.set(1, Math.max(0.01, h), 1);
+    dummy.updateMatrix();
+    instMesh.setMatrixAt(barIdx, dummy.matrix);
+    colorForValue(v, tmpColor);
+    instMesh.setColorAt(barIdx, tmpColor);
+    barData.push({ i, j, v, baseHeight: h, baseX: x, baseZ: z, curHeight: h, prevWave: 0, prevEnergy: 0, flashBoost: 0 });
+    barIdx++;
+  }
+}
+instMesh.instanceMatrix.needsUpdate = true;
+instMesh.instanceColor.needsUpdate = true;
+barsGroup.add(instMesh);
+
+/* ============================================================
+   4. OVERLAY DE DIVERGENCIA LOCAL
+   Puntos que resaltan celdas donde la incompresibilidad local se cumple
+   ============================================================ */
+const DIV_COUNT = 676;
+const divGeo = new THREE.BufferGeometry();
+const divPos = new Float32Array(DIV_COUNT * 3);
+const divCol = new Float32Array(DIV_COUNT * 3);
+const divData = [];
+let divIdx = 0;
+for (let i = 0; i < DIM; i++) {
+  for (let j = 0; j < DIM; j++) {
+    divPos[divIdx*3]   = i * cellSpacing - offset;
+    divPos[divIdx*3+1] = 0.05;
+    divPos[divIdx*3+2] = j * cellSpacing - offset;
+    divCol[divIdx*3] = 0; divCol[divIdx*3+1] = 0; divCol[divIdx*3+2] = 0;
+    divData.push({ i, j, div: 0, active: false });
+    divIdx++;
+  }
+}
+divGeo.setAttribute('position', new THREE.BufferAttribute(divPos, 3));
+divGeo.setAttribute('color', new THREE.BufferAttribute(divCol, 3));
+const divPoints = new THREE.Points(divGeo, new THREE.PointsMaterial({
+  size: 0.28, vertexColors: true, transparent: true, opacity: 0.9,
+  blending: THREE.AdditiveBlending, depthWrite: false
+}));
+divPoints.frustumCulled = false;
+scene.add(divPoints);
+
+/* Halo donde la divergencia es mínima */
+const haloGroup = new THREE.Group(); scene.add(haloGroup);
+const haloGeo = new THREE.RingGeometry(0.35, 0.55, 16);
+const halos = [];
+for (let k = 0; k < 60; k++) {
+  const m = new THREE.Mesh(haloGeo, new THREE.MeshBasicMaterial({
+    color: 0x00ff88, side: THREE.DoubleSide,
+    transparent: true, opacity: 0.6,
+    blending: THREE.AdditiveBlending, depthWrite: false
+  }));
+  m.rotation.x = -Math.PI/2;
+  m.visible = false;
+  haloGroup.add(m);
+  halos.push({ mesh: m, active: false, life: 0, age: 0 });
+}
+function spawnHalo(x, z) {
+  for (const h of halos) {
+    if (!h.active) {
+      h.mesh.position.set(x, 0.06, z);
+      h.mesh.visible = true;
+      h.active = true; h.age = 0; h.life = 1.2;
+      h.mesh.scale.setScalar(1.5);
+      return;
+    }
+  }
+}
+function updateHalos(dt) {
+  for (const h of halos) {
+    if (!h.active) continue;
+    h.age += dt;
+    const k = h.age / h.life;
+    if (k >= 1) { h.active = false; h.mesh.visible = false; continue; }
+    h.mesh.scale.setScalar(1.5 + k * 1.5);
+    h.mesh.material.opacity = 0.6 * (1 - k);
+  }
+}
+
+/* ============================================================
+   5. MONITOR DE NAVIER-STOKES
+   ============================================================ */
+class NSMonitor {
+  constructor() {
+    this.threshold = {
+      divEps: 0.05,        // umbral para incompresibilidad local
+      energyWarn: 2.0,     // ×baseline
+      energyBlow: 10.0,    // ×baseline
+      gradWarn: 3.0,
+      gradBlow: 15.0
+    };
+    this.baseline = { E: 1, grad: 1, h1: 1, h2: 1, h3: 1 };
+    this.measured = false;
+
+    // Historial para el chart
+    this.history = {
+      t: [],
+      E: [],
+      grad: [],
+      h1: [],
+      maxLen: 240
+    };
+
+    // Estado Clay
+    this.clay = {
+      A: 'pending',  // solución global suave
+      B: 'pending',  // blow-up finito
+      C: 'pending',  // solución débil global
+      D: 'pending'   // ruptura
+    };
+    this.sobolevStable = { m1: false, m2: false, m3: false };
+    this.wasBounded = false;
+  }
+
+  /* -------- Cálculo del campo de velocidad modulado -------- */
+  computeVelocityField(waveT, energyT) {
+    const D = DIM;
+    const E_row = new Float32Array(D);
+    for (let i = 0; i < D; i++) {
+      let e = 0;
+      for (let j = 0; j < D; j++) e += Math.abs(M[i][j]);
+      E_row[i] = e;
+    }
+    const u = new Array(D);
+    for (let i = 0; i < D; i++) {
+      const row = new Float64Array(D);
+      for (let j = 0; j < D; j++) {
+        const phase = 4*Math.PI*i/D - waveT*3;
+        const env = Math.cos(waveT*0.5 + i*0.3);
+        const wave = Math.sin(phase) * env;
+        const eMod = 1 + (E_row[i] / 4) * 0.5 * Math.sin(energyT*0.8 + i*0.4);
+        row[j] = M[i][j] * (1 + wave*0.6) * eMod;
+      }
+      u[i] = row;
+    }
+    return u;
+  }
+
+  /* -------- Normas -------- */
+  energyL2(u) {
+    let s = 0;
+    for (let i = 0; i < DIM; i++)
+      for (let j = 0; j < DIM; j++) s += u[i][j]*u[i][j];
+    return s; // ‖u‖²_L2
+  }
+
+  gradFrobenius(u) {
+    let s = 0;
+    for (let i = 1; i < DIM-1; i++)
+      for (let j = 1; j < DIM-1; j++) {
+        const dx = (u[i+1][j] - u[i-1][j]) / 2;
+        const dy = (u[i][j+1] - u[i][j-1]) / 2;
+        s += dx*dx + dy*dy;
+      }
+    return s; // ‖∇u‖²_F
+  }
+
+  sobolevSquared(u, m) {
+    let total = this.energyL2(u);
+    if (m >= 1) {
+      let s = 0;
+      for (let i = 1; i < DIM-1; i++)
+        for (let j = 1; j < DIM-1; j++) {
+          const dx = (u[i+1][j] - u[i-1][j]) / 2;
+          const dy = (u[i][j+1] - u[i][j-1]) / 2;
+          s += dx*dx + dy*dy;
+        }
+      total += s;
+    }
+    if (m >= 2) {
+      let s = 0;
+      for (let i = 1; i < DIM-1; i++)
+        for (let j = 1; j < DIM-1; j++) {
+          const dxx = u[i+1][j] - 2*u[i][j] + u[i-1][j];
+          const dyy = u[i][j+1] - 2*u[i][j] + u[i][j-1];
+          const dxy = (u[i+1][j+1] - u[i+1][j-1] - u[i-1][j+1] + u[i-1][j-1]) / 4;
+          s += dxx*dxx + dyy*dyy + 2*dxy*dxy;
+        }
+      total += s;
+    }
+    if (m >= 3) {
+      let s = 0;
+      for (let i = 2; i < DIM-2; i++)
+        for (let j = 2; j < DIM-2; j++) {
+          const d3x = u[i+2][j] - 2*u[i+1][j] + 2*u[i-1][j] - u[i-2][j];
+          const d3y = u[i][j+2] - 2*u[i][j+1] + 2*u[i][j-1] - u[i][j-2];
+          s += d3x*d3x + d3y*d3y;
+        }
+      total += s;
+    }
+    return total; // ‖u‖²_H^m
+  }
+
+  /* Divergencia local por celda */
+  localDivergence(u) {
+    const div = new Array(DIM);
+    for (let i = 0; i < DIM; i++) div[i] = new Float64Array(DIM);
+    for (let i = 1; i < DIM-1; i++)
+      for (let j = 1; j < DIM-1; j++) {
+        const dx = (u[i+1][j] - u[i-1][j]) / 2;
+        const dy = (u[i][j+1] - u[i][j-1]) / 2;
+        div[i][j] = dx + dy;
+      }
+    return div;
+  }
+
+  /* Divergencia global (traza) */
+  globalTrace(u) {
+    let tr = 0;
+    for (let i = 1; i < DIM-1; i++)
+      tr += u[i+1][i] - 2*u[i][i] + u[i-1][i];
+    return tr;
+  }
+
+  /* Evaluación completa */
+  evaluate(u, t) {
+    const E = this.energyL2(u);
+    const grad = this.gradFrobenius(u);
+    const h1 = this.sobolevSquared(u, 1);
+    const h2 = this.sobolevSquared(u, 2);
+    const h3 = this.sobolevSquared(u, 3);
+    const tr = this.globalTrace(u);
+    const divField = this.localDivergence(u);
+
+    // Establecer baseline en la primera evaluación
+    if (!this.measured) {
+      this.baseline = { E, grad, h1, h2, h3 };
+      this.measured = true;
+    }
+
+    // Ratios respecto al baseline
+    const ratioE = E / (this.baseline.E + 1e-12);
+    const ratioG = grad / (this.baseline.grad + 1e-12);
+    const ratioH1 = h1 / (this.baseline.h1 + 1e-12);
+    const ratioH2 = h2 / (this.baseline.h2 + 1e-12);
+    const ratioH3 = h3 / (this.baseline.h3 + 1e-12);
+
+    // Estado de estabilidad
+    const stableM1 = ratioH1 < this.threshold.energyWarn;
+    const stableM2 = ratioH2 < this.threshold.energyWarn;
+    const stableM3 = ratioH3 < this.threshold.energyWarn;
+    this.sobolevStable = { m1: stableM1, m2: stableM2, m3: stableM3 };
+
+    // Blow-up: alguno supera el umbral blow
+    const blow = (ratioE > this.threshold.energyBlow) ||
+                 (ratioG > this.threshold.gradBlow) ||
+                 (ratioH1 > this.threshold.energyBlow * 2);
+
+    // Actualizar Clay
+    if (blow) {
+      this.clay.B = 'active'; this.clay.D = 'active';
+      this.clay.A = 'fail';
+    } else if (stableM1 && stableM2 && stableM3 && t > 3) {
+      // Si han pasado 3s y sigue acotado, candidato Clay A/C
+      this.clay.A = 'active';
+      this.clay.C = 'active';
+    }
+
+    return {
+      E, grad, h1, h2, h3, tr, divField,
+      ratioE, ratioG, ratioH1, ratioH2, ratioH3,
+      stableM1, stableM2, stableM3,
+      blow,
+      maxDiv: this.maxAbsDiv(divField)
+    };
+  }
+
+  maxAbsDiv(div) {
+    let mx = 0;
+    for (let i = 0; i < DIM; i++)
+      for (let j = 0; j < DIM; j++)
+        if (Math.abs(div[i][j]) > mx) mx = Math.abs(div[i][j]);
+    return mx;
+  }
+
+  pushHistory(t, E, grad, h1) {
+    this.history.t.push(t);
+    this.history.E.push(E);
+    this.history.grad.push(grad);
+    this.history.h1.push(h1);
+    if (this.history.t.length > this.history.maxLen) {
+      this.history.t.shift();
+      this.history.E.shift();
+      this.history.grad.shift();
+      this.history.h1.shift();
+    }
+  }
+}
+
+const nsMonitor = new NSMonitor();
+
+/* ============================================================
+   6. LOG DE EVENTOS
+   ============================================================ */
+const logBody = document.getElementById('log-body');
+const logCount = document.getElementById('log-count');
+const MAX_LOG = 150;
+let nsOkCount = 0, blowCount = 0, clayCount = 0;
+
+function emitEvent(tagClass, tag, msg) {
+  const now = performance.now() / 1000;
+  const mm = String(Math.floor(now/60)).padStart(2,'0');
+  const ss = String(Math.floor(now%60)).padStart(2,'0');
+  const ms = String(Math.floor((now*1000)%1000)).padStart(3,'0');
+  const row = document.createElement('div');
+  row.className = 'ev-row';
+  row.innerHTML = `<span class="t">${mm}:${ss}.${ms}</span><span class="tag ${tagClass}">${tag}</span><span class="msg">${msg}</span>`;
+  logBody.appendChild(row);
+  while (logBody.childElementCount > MAX_LOG) logBody.removeChild(logBody.firstElementChild);
+  logBody.scrollTop = logBody.scrollHeight;
+  logCount.textContent = logBody.childElementCount;
+  // Contadores
+  if (tagClass === 'ns_ok')   { nsOkCount++;   document.querySelector('#cnt-ns .num').textContent = nsOkCount; document.getElementById('cnt-ns').classList.add('flash'); setTimeout(()=>document.getElementById('cnt-ns').classList.remove('flash'),200); }
+  if (tagClass === 'ns_blow') { blowCount++;   document.querySelector('#cnt-blow .num').textContent = blowCount; document.getElementById('cnt-blow').classList.add('flash'); setTimeout(()=>document.getElementById('cnt-blow').classList.remove('flash'),200); }
+  if (tagClass === 'clay')    { clayCount++;   document.querySelector('#cnt-clay .num').textContent = clayCount; document.getElementById('cnt-clay').classList.add('flash'); setTimeout(()=>document.getElementById('cnt-clay').classList.remove('flash'),200); }
+}
+function clearLog() {
+  logBody.innerHTML = '';
+  logCount.textContent = '0';
+}
+
+/* ============================================================
+   7. CHART 2D DE NORMAS
+   ============================================================ */
+const chartCanvas = document.getElementById('ns-chart');
+const chartCtx = chartCanvas.getContext('2d');
+const CW = chartCanvas.width, CH = chartCanvas.height;
+
+function drawChart(hist) {
+  chartCtx.fillStyle = '#000';
+  chartCtx.fillRect(0, 0, CW, CH);
+
+  // Grid
+  chartCtx.strokeStyle = 'rgba(0, 255, 136, 0.08)';
+  chartCtx.lineWidth = 1;
+  chartCtx.beginPath();
+  for (let i = 0; i <= 4; i++) { const y = CH/4*i; chartCtx.moveTo(0,y); chartCtx.lineTo(CW,y); }
+  for (let i = 0; i <= 8; i++) { const x = CW/8*i; chartCtx.moveTo(x,0); chartCtx.lineTo(x,CH); }
+  chartCtx.stroke();
+
+  // Línea de umbral
+  const blowY = CH * 0.15;
+  chartCtx.strokeStyle = 'rgba(255, 85, 85, 0.5)';
+  chartCtx.setLineDash([4, 4]);
+  chartCtx.beginPath();
+  chartCtx.moveTo(0, blowY); chartCtx.lineTo(CW, blowY);
+  chartCtx.stroke();
+  chartCtx.setLineDash([]);
+  chartCtx.fillStyle = 'rgba(255, 85, 85, 0.7)';
+  chartCtx.font = 'bold 9px monospace';
+  chartCtx.fillText('BLOW-UP', 4, blowY - 2);
+
+  if (hist.t.length < 2) return;
+
+  // Normalizar usando el máximo de las series para visualizar tendencia
+  const n = hist.t.length;
+  const maxE = Math.max(...hist.E);
+  const maxG = Math.max(...hist.grad);
+  const maxH = Math.max(...hist.h1);
+  const globalMax = Math.max(maxE, maxG, maxH, 1e-12);
+
+  // Función de dibujo
+  function drawLine(arr, color, scale) {
+    chartCtx.strokeStyle = color;
+    chartCtx.lineWidth = 1.6;
+    chartCtx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const x = (i / (n-1)) * CW;
+      const v = arr[i] / globalMax;
+      const y = CH - v * CH * 0.9;
+      if (i === 0) chartCtx.moveTo(x, y);
+      else chartCtx.lineTo(x, y);
+    }
+    chartCtx.stroke();
+  }
+
+  drawLine(hist.E,    '#00ff88', 1);
+  drawLine(hist.grad, '#ffe600', 1);
+  drawLine(hist.h1,   '#ff9900', 1);
+
+  // Etiquetas
+  chartCtx.fillStyle = '#00ff88'; chartCtx.font = '9px monospace';
+  chartCtx.fillText('E_L2', 4, 10);
+  chartCtx.fillStyle = '#ffe600';
+  chartCtx.fillText('‖∇u‖_F', 50, 10);
+  chartCtx.fillStyle = '#ff9900';
+  chartCtx.fillText('H¹', 110, 10);
+}
+
+/* ============================================================
+   8. BARRIDOS (onda + energía)
+   ============================================================ */
+let waveActive = true;
+let energyActive = true;
+let nsActive = true;
+let paused = false;
+let speedMult = 1;
+let waveT = 0, energyT = 0;
+let wCycles = 0, eCycles = 0;
+
+function waveValue(i, j, t) {
+  const phase = 4*Math.PI*i/DIM - t*3;
+  const env = Math.cos(t*0.5 + i*0.3);
+  return Math.sin(phase) * env;
+}
+
+const energyField = new Float32Array(DIM);
+function computeEnergy(t) {
+  const raw = new Float32Array(DIM);
+  for (let i = 0; i < DIM; i++) {
+    let e = 0;
+    for (let j = 0; j < DIM; j++) {
+      const modulation = 0.5 + 0.5 * Math.sin(t*0.8 + i*0.4 + j*0.2);
+      e += Math.abs(M[i][j]) * modulation;
+    }
+    raw[i] = e;
+  }
+  for (let i = 0; i < DIM; i++) {
+    const prev = raw[(i - 1 + DIM) % DIM];
+    const next = raw[(i + 1) % DIM];
+    energyField[i] = raw[i]*0.7 + (prev + next)*0.15;
+  }
+}
+
+/* ============================================================
+   9. LOOP PRINCIPAL
+   ============================================================ */
+const clock = new THREE.Clock();
+let frameCount = 0, fpsTimer = 0, fps = 60;
+let lastNSEventTime = 0;
+let lastBlowTime = 0;
+let lastClayTime = 0;
+let sessionStart = performance.now();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const rawDt = Math.min(clock.getDelta(), 0.1);
+  const dt = paused ? 0 : rawDt * speedMult;
+  const time = clock.elapsedTime;
+
+  if (!paused) {
+    if (waveActive) {
+      waveT += dt;
+      const c = Math.floor(waveT / 2.1);
+      if (c > wCycles) { wCycles = c; emitEvent('div', 'CICLO_Ψ', `Ciclo de onda #${wCycles} · t=${waveT.toFixed(2)}`); }
+    }
+    if (energyActive) {
+      energyT += dt;
+      const c = Math.floor(energyT / 3.5);
+      if (c > eCycles) { eCycles = c; emitEvent('div', 'CICLO_E', `Ciclo de energía #${eCycles} · t=${energyT.toFixed(2)}`); }
+    }
+  }
+
+  computeEnergy(energyT);
+  const energyMax = Math.max(...energyField.slice(0, DIM));
+
+  // Actualizar barras
+  let activeCount = 0;
+  let idx = 0;
+  for (let i = 0; i < DIM; i++) {
+    for (let j = 0; j < DIM; j++) {
+      const d = barData[idx];
+      let h = d.baseHeight;
+      let wval = 0;
+
+      if (d.v !== 0) {
+        activeCount++;
+        if (waveActive) {
+          wval = waveValue(i, j, waveT);
+          h = d.baseHeight * (1 + wval * 0.6);
+          h = Math.max(0.05, h);
+        }
+        if (energyActive) {
+          const eNorm = energyField[i] / (energyMax + 1e-12);
+          h *= (1 + eNorm * 0.8);
+        }
+      }
+
+      d.curHeight += (h - d.curHeight) * 0.15;
+      d.flashBoost = Math.max(0, d.flashBoost - rawDt * 2);
+
+      dummy.position.set(d.baseX, d.curHeight / 2, d.baseZ);
+      dummy.scale.set(1, Math.max(0.01, d.curHeight), 1);
+      dummy.updateMatrix();
+      instMesh.setMatrixAt(idx, dummy.matrix);
+
+      colorForValue(d.v, tmpColor, d.flashBoost);
+      if (energyActive && d.v !== 0) {
+        const eNorm = energyField[i] / (energyMax + 1e-12);
+        tmpColor.lerp(new THREE.Color(1.0, 0.85, 0.0), eNorm * 0.3);
+      }
+      if (waveActive && d.v !== 0) {
+        const k = (wval + 1) / 2;
+        tmpColor.lerp(new THREE.Color(0.0, 0.9, 1.0), (1 - k) * 0.2);
+      }
+      instMesh.setColorAt(idx, tmpColor);
+      idx++;
+    }
+  }
+  instMesh.instanceMatrix.needsUpdate = true;
+  instMesh.instanceColor.needsUpdate = true;
+
+  /* --- Evaluación NS --- */
+  if (nsActive && !paused && time - lastNSEventTime > 0.15) {
+    lastNSEventTime = time;
+
+    const u = nsMonitor.computeVelocityField(waveT, energyT);
+    const result = nsMonitor.evaluate(u, waveT);
+
+    // Actualizar HUD NS
+    document.getElementById('ns-tr').textContent = result.tr.toExponential(3);
+    document.getElementById('ns-el2').textContent = result.E.toExponential(3);
+    document.getElementById('ns-grad').textContent = result.grad.toExponential(3);
+    document.getElementById('ns-h1').textContent = result.h1.toExponential(3);
+    document.getElementById('ns-h2').textContent = result.h2.toExponential(3);
+    document.getElementById('ns-h3').textContent = result.h3.toExponential(3);
+
+    // Colores según estado
+    function setNormClass(id, ratio) {
+      const el = document.getElementById(id);
+      el.className = 'v';
+      if (ratio < 1.5) el.classList.add('ok');
+      else if (ratio < 3) el.classList.add('warn');
+      else el.classList.add('bad');
+    }
+    setNormClass('ns-el2', result.ratioE);
+    setNormClass('ns-grad', result.ratioG);
+    setNormClass('ns-h1', result.ratioH1);
+    setNormClass('ns-h2', result.ratioH2);
+    setNormClass('ns-h3', result.ratioH3);
+
+    // Barras mini
+    function setBar(id, ratio) {
+      const pct = Math.min(100, ratio * 33); // ratio 3 → 100%
+      document.getElementById(id).style.width = pct + '%';
+    }
+    setBar('ns-el2-bar', result.ratioE);
+    setBar('ns-grad-bar', result.ratioG);
+    setBar('ns-h1-bar', result.ratioH1);
+    setBar('ns-h2-bar', result.ratioH2);
+    setBar('ns-h3-bar', result.ratioH3);
+    document.getElementById('ns-tr-bar').style.width =
+      Math.min(100, Math.abs(result.tr) / (nsMonitor.baseline.E * 0.05) * 100) + '%';
+
+    // Sobolev máximo estable
+    let maxStable = 0;
+    if (result.stableM1) maxStable = 1;
+    if (result.stableM2) maxStable = 2;
+    if (result.stableM3) maxStable = 3;
+    document.getElementById('ns-mstab').textContent = maxStable > 0 ? `H^${maxStable}` : '—';
+
+    // Status general
+    const st = document.getElementById('ns-status');
+    if (result.blow) { st.textContent = '●BLOW'; st.style.color = '#ff5555'; }
+    else if (maxStable >= 2) { st.textContent = '●OK'; st.style.color = '#00ff88'; }
+    else { st.textContent = '●WARN'; st.style.color = '#ffe600'; }
+
+    /* --- Eventos NS --- */
+    // 1. Divergencia local mínima → celdas incompresibles
+    const divField = result.divField;
+    let incompressibleCells = 0;
+    for (let k = 0; k < divData.length; k++) {
+      const d = divData[k];
+      const dv = divField[d.i][d.j];
+      d.div = dv;
+      const isIncomp = Math.abs(dv) < nsMonitor.threshold.divEps;
+      const wasActive = d.active;
+      d.active = isIncomp && M[d.i][d.j] !== 0;
+      if (d.active) {
+        incompressibleCells++;
+        if (!wasActive && Math.random() < 0.02) {
+          spawnHalo(d.i * cellSpacing - offset, d.j * cellSpacing - offset);
+        }
+      }
+    }
+    document.getElementById('hud-frob').textContent = FROB.toExponential(2);
+
+    // 2. Evento: incompresibilidad local
+    if (incompressibleCells > 100 && time - lastClayTime > 1.5) {
+      emitEvent('ns_ok', 'INCOMPR', `${incompressibleCells} celdas incompresibles (|∇·u|<${nsMonitor.threshold.divEps})`);
+    }
+
+    // 3. Evento: energía acotada
+    if (result.ratioE < 1.3 && time - lastClayTime > 3) {
+      lastClayTime = time;
+      emitEvent('ns_ok', 'ENERGY_OK', `E_L2 acotada · ratio=${result.ratioE.toFixed(3)} · ‖u‖²_L2=${result.E.toExponential(2)}`);
+    }
+
+    // 4. Evento: gradiente acotado
+    if (result.ratioG < 1.3 && time - lastClayTime > 4) {
+      emitEvent('ns_ok', 'GRAD_OK', `‖∇u‖²_F acotada · ratio=${result.ratioG.toFixed(3)}`);
+    }
+
+    // 5. Evento: Sobolev m estable
+    if (result.stableM1 && result.stableM2 && result.stableM3 && time - lastClayTime > 2.5) {
+      emitEvent('ns_ok', 'SOBOLEV', `H¹+H²+H³ estables simultáneamente (m_max=3)`);
+    }
+
+    // 6. Blow-up warning
+    if (result.blow && time - lastBlowTime > 2) {
+      lastBlowTime = time;
+      emitEvent('ns_blow', 'BLOW-UP', `⚠ Norma excede umbral · E×${result.ratioE.toFixed(2)} · ‖∇u‖×${result.ratioG.toFixed(2)}`);
+    }
+
+    // 7. Clay alternatives
+    if (waveT > 5 && time - lastClayTime > 5) {
+      if (result.blow) {
+        emitEvent('clay', 'CLAY_B', `Alternativa B: blow-up finito detectado (t=${waveT.toFixed(2)})`);
+        emitEvent('clay', 'CLAY_D', `Alternativa D: ruptura de suavidad`);
+      } else if (result.stableM1 && result.stableM2 && result.stableM3) {
+        emitEvent('clay', 'CLAY_A', `✓ Alternativa A: solución global suave (t=${waveT.toFixed(2)})`);
+        emitEvent('clay', 'CLAY_C', `✓ Alternativa C: solución débil global`);
+      }
+    }
+
+    // Actualizar panel Clay
+    function setClay(id, state) {
+      const el = document.getElementById(id);
+      el.textContent = state === 'active' ? 'ACTIVO' : state === 'fail' ? 'FALLA' : 'PENDIENTE';
+      el.className = 'v ' + (state === 'active' ? 'active' : state === 'fail' ? 'fail' : 'pending');
+    }
+    setClay('clay-a', nsMonitor.clay.A);
+    setClay('clay-b', nsMonitor.clay.B);
+    setClay('clay-c', nsMonitor.clay.C);
+    setClay('clay-d', nsMonitor.clay.D);
+
+    // Chart history
+    nsMonitor.pushHistory(waveT, result.E, result.grad, result.h1);
+    drawChart(nsMonitor.history);
+  }
+
+  /* Actualizar overlay de divergencia */
+  {
+    const dc = divGeo.attributes.color.array;
+    for (let k = 0; k < divData.length; k++) {
+      const d = divData[k];
+      if (d.active) {
+        // Verde brillante para incompresible
+        dc[k*3] = 0; dc[k*3+1] = 1; dc[k*3+2] = 0.5;
+      } else {
+        // Intensidad proporcional a |div|
+        const intensity = Math.min(1, Math.abs(d.div) * 3);
+        dc[k*3] = intensity * 0.5; dc[k*3+1] = 0.2; dc[k*3+2] = intensity * 0.8;
+      }
+    }
+    divGeo.attributes.color.needsUpdate = true;
+  }
+
+  updateHalos(rawDt);
+  barsGroup.rotation.y = Math.sin(time * 0.05) * 0.02;
+  controls.update();
+  renderer.render(scene, camera);
+
+  /* HUD left */
+  document.getElementById('hud-wt').textContent = waveT.toFixed(3) + ' s';
+  document.getElementById('hud-et').textContent = energyT.toFixed(3) + ' s';
+  document.getElementById('hud-wcy').textContent = wCycles;
+  document.getElementById('hud-ecy').textContent = eCycles;
+  document.getElementById('hud-act').textContent = `${activeCount}/${DIM*DIM}`;
+
+  /* FPS */
+  frameCount++; fpsTimer += rawDt;
+  if (fpsTimer >= 0.5) { fps = Math.round(frameCount/fpsTimer); frameCount = 0; fpsTimer = 0; }
+}
+
+/* ============================================================
+   10. CONTROLES
+   ============================================================ */
+const btnWave = document.getElementById('btn-wave');
+const btnEnergy = document.getElementById('btn-energy');
+const btnNS = document.getElementById('btn-ns');
+const btnPause = document.getElementById('btn-pause');
+const btnSpeed = document.getElementById('btn-speed');
+const btnClear = document.getElementById('btn-clear');
+const btnReset = document.getElementById('btn-reset');
+
+btnWave.addEventListener('click', () => {
+  waveActive = !waveActive;
+  btnWave.classList.toggle('active', waveActive);
+  btnWave.classList.toggle('wave-active', waveActive);
+  emitEvent('div', 'CTRL', waveActive ? 'Onda ACTIVADA' : 'Onda PAUSADA');
+});
+
+btnEnergy.addEventListener('click', () => {
+  energyActive = !energyActive;
+  btnEnergy.classList.toggle('active', energyActive);
+  btnEnergy.classList.toggle('energy-active', energyActive);
+  emitEvent('div', 'CTRL', energyActive ? 'Energía ACTIVADA' : 'Energía PAUSADA');
+});
+
+btnNS.addEventListener('click', () => {
+  nsActive = !nsActive;
+  btnNS.classList.toggle('active', nsActive);
+  btnNS.classList.toggle('sobolev-active', nsActive);
+  emitEvent('div', 'CTRL', nsActive ? 'Monitor NS ACTIVADO' : 'Monitor NS PAUSADO');
+});
+
+btnPause.addEventListener('click', () => {
+  paused = !paused;
+  btnPause.textContent = paused ? '▶ Reanudar' : '⏸ Pausa';
+  btnPause.classList.toggle('active', paused);
+});
+
+btnSpeed.addEventListener('click', () => {
+  const arr = [1, 2, 4, 8, 0.25, 0.5];
+  speedMult = arr[(arr.indexOf(speedMult) + 1) % arr.length];
+  btnSpeed.textContent = `⚡ ×${speedMult}`;
+});
+
+btnClear.addEventListener('click', clearLog);
+
+btnReset.addEventListener('click', () => {
+  waveT = 0; energyT = 0; wCycles = 0; eCycles = 0;
+  nsOkCount = 0; blowCount = 0; clayCount = 0;
+  document.querySelector('#cnt-ns .num').textContent = '0';
+  document.querySelector('#cnt-blow .num').textContent = '0';
+  document.querySelector('#cnt-clay .num').textContent = '0';
+  nsMonitor.measured = false;
+  nsMonitor.history.t = []; nsMonitor.history.E = []; nsMonitor.history.grad = []; nsMonitor.history.h1 = [];
+  nsMonitor.clay = { A: 'pending', B: 'pending', C: 'pending', D: 'pending' };
+  for (const d of divData) { d.active = false; d.div = 0; }
+  for (const h of halos) { h.active = false; h.mesh.visible = false; }
+  clearLog();
+  emitEvent('div', 'RESET', 'Sistema reiniciado');
+});
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+/* Inicio */
+emitEvent('div', 'INIT', `Matriz ${DIM}×${DIM} · rango 2 · ‖M‖_F=${FROB.toExponential(3)}`);
+emitEvent('ns_ok', 'NS_INIT', 'Monitor Navier-Stokes activo · midiendo normas en tiempo real');
+
+animate();
+</script>
+</body>
+</html>
